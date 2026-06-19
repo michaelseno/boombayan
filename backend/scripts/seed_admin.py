@@ -17,16 +17,23 @@ from app.models.user import User
 
 def create_cognito_user(email: str, temporary_password: str) -> str:
     client = boto3.client("cognito-idp", region_name=settings.aws_region)
-    client.admin_create_user(
-        UserPoolId=settings.cognito_user_pool_id,
-        Username=email,
-        UserAttributes=[
-            {"Name": "email", "Value": email},
-            {"Name": "email_verified", "Value": "true"},
-        ],
-        TemporaryPassword=temporary_password,
-        MessageAction="SUPPRESS",
-    )
+    try:
+        client.admin_create_user(
+            UserPoolId=settings.cognito_user_pool_id,
+            Username=email,
+            UserAttributes=[
+                {"Name": "email", "Value": email},
+                {"Name": "email_verified", "Value": "true"},
+            ],
+            TemporaryPassword=temporary_password,
+            MessageAction="SUPPRESS",
+        )
+    except client.exceptions.UsernameExistsException:
+        # Re-running for the same email (e.g. recovering from a prior partial
+        # failure, where Cognito creation succeeded but put_user below did
+        # not) is safe: skip creation and fall through to fetch the existing
+        # user's sub.
+        pass
     # Deliberately left in FORCE_CHANGE_PASSWORD state: the board member sets
     # their own permanent password on first login via Cognito's
     # NEW_PASSWORD_REQUIRED challenge (handled by the frontend's login()

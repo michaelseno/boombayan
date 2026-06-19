@@ -36,6 +36,15 @@ def test_create_cognito_user_leaves_force_change_password_status(cognito_user_po
     assert response["UserStatus"] == "FORCE_CHANGE_PASSWORD"
 
 
+def test_create_cognito_user_is_idempotent_on_existing_email(cognito_user_pool):
+    from scripts.seed_admin import create_cognito_user
+
+    first_user_id = create_cognito_user("board@boombayan.org", "TempPass123!")
+    second_user_id = create_cognito_user("board@boombayan.org", "AnotherTempPass123!")
+
+    assert first_user_id == second_user_id
+
+
 def test_main_creates_cognito_user_and_users_table_record(
     cognito_user_pool, dynamodb_users_table, monkeypatch, capsys
 ):
