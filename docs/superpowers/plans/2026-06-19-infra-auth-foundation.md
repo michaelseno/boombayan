@@ -445,18 +445,21 @@ package:
   patterns:
     - '!**'
     - '../backend/app/**'
+    - '../backend/__init__.py'
 
 custom:
   pythonRequirements:
     fileName: ../backend/requirements.txt
-    dockerizePip: false
+    # true: pydantic-core (and other native deps) must be built as Linux
+    # wheels via Docker, not macOS wheels — see Task 4's note.
+    dockerizePip: true
 
 plugins:
   - serverless-python-requirements
 
 functions:
   api:
-    handler: app.handler.handler
+    handler: backend.app.handler.handler
     events:
       - httpApi: '*'
 
@@ -486,6 +489,8 @@ resources:
           - AttributeName: ConfigKey
             KeyType: HASH
 ```
+
+This carries forward all three fixes from Task 4 (`backend.app.handler.handler` handler path, the 3-entry `package.patterns` including `../backend/__init__.py`, and `dockerizePip: true`) — do not revert to the original 2-entry pattern / `app.handler.handler` / `dockerizePip: false` shown in earlier drafts of this task, or the deploy will regress to the bugs Task 4 already fixed and verified.
 
 - [ ] **Step 2: Deploy the updated stack**
 
@@ -698,8 +703,8 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'app.db'`
 ```python
 import boto3
 
-from app.config import settings
-from app.models.user import User
+from .config import settings
+from .models.user import User
 
 
 def _dynamodb():
@@ -739,6 +744,8 @@ def put_user(user: User) -> None:
         item["MemberId"] = user.member_id
     get_users_table().put_item(Item=item)
 ```
+
+Note: `db.py` uses relative imports (`.config`, `.models.user`), not `from app...`. This is an import convention that applies to every file under `backend/app/` from here on (it does NOT apply to test files in `backend/tests/`, which keep using absolute `from app...` imports as already written, since tests run locally via pytest's `pythonpath = ["."]` rooted at `backend/`, never through Lambda). Reason: Task 4 found that Serverless Framework's packaging preserves a `backend/` prefix in the deployed zip, so Lambda imports this code as `backend.app.*`, not `app.*`. Relative imports resolve correctly under both names; absolute `from app...` imports inside `backend/app/**` would work locally but throw `ModuleNotFoundError: No module named 'app'` once deployed. Every later task that adds a file under `backend/app/` (Tasks 8 and 9 below) follows this same convention — their code blocks already reflect it.
 
 - [ ] **Step 6: Run test to verify it passes**
 
@@ -810,7 +817,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'app.auth'`
 import jwt
 from fastapi import Header, HTTPException
 
-from app.config import settings
+from .config import settings
 
 _jwks_client: jwt.PyJWKClient | None = None
 
@@ -849,6 +856,8 @@ def get_current_user_id(authorization: str = Header(...)) -> str:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
     return claims["sub"]
 ```
+
+(Relative import — `.config`, not `app.config` — per the convention established in Task 7.)
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -989,9 +998,9 @@ Expected: FAIL with `404` for the first test (route doesn't exist yet, returns F
 ```python
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.auth import get_current_user_id
-from app.db import get_user_by_id
-from app.models.user import User
+from ..auth import get_current_user_id
+from ..db import get_user_by_id
+from ..models.user import User
 
 router = APIRouter()
 
@@ -1004,12 +1013,14 @@ def get_me(user_id: str = Depends(get_current_user_id)) -> User:
     return user
 ```
 
+(Relative imports — `..auth`, `..db`, `..models.user` — per the convention established in Task 7: two dots since this file is in `app/routers/`, one level deeper than `auth.py`/`db.py`.)
+
 - [ ] **Step 7: Register the router** — modify `backend/app/main.py` to read:
 
 ```python
 from fastapi import FastAPI
 
-from app.routers import health, users
+from .routers import health, users
 
 app = FastAPI(title="Boombayan LMS API")
 app.include_router(health.router)
@@ -1037,10 +1048,15 @@ git commit -m "feat: add GET /me endpoint"
 There's no self-registration in this system (§15 of the BRD), so the very first board administrator account has to be created manually — this script creates both the Cognito login and the matching Users-table record in one step.
 
 **Files:**
+- Create: `backend/scripts/__init__.py`
 - Create: `backend/scripts/seed_admin.py`
 - Test: `backend/tests/test_seed_admin.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_seed_admin.py`
+- [ ] **Step 1: Create `backend/scripts/__init__.py`** (empty file)
+
+This makes `scripts` an explicit package. It's required for Step 7 below to work: running this script directly as `python scripts/seed_admin.py` would put `backend/scripts/` (not `backend/`) at the front of `sys.path` (Python sets `sys.path[0]` to the invoked script's own directory), so `from app.config import settings` inside it would fail with `ModuleNotFoundError: No module named 'app'`. Step 7 instead invokes it as `python -m scripts.seed_admin`, which puts the current directory (`backend/`) on `sys.path` — but `-m` requires `scripts` to be an importable package, hence this file. (Pytest doesn't hit this problem — pytest's own import mechanism plus `pythonpath = ["."]` in `pyproject.toml` already puts `backend/` on the path regardless of how the script is invoked, which is why this gap wasn't caught until Step 7.)
+
+- [ ] **Step 2: Write the failing test** — `backend/tests/test_seed_admin.py`
 
 ```python
 import sys
@@ -1093,20 +1109,20 @@ def test_main_creates_cognito_user_and_users_table_record(
     assert items[0]["IsAdministrator"] is True
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 3: Run test to verify it fails**
 
 ```bash
 pytest tests/test_seed_admin.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'scripts.seed_admin'`
 
-- [ ] **Step 3: Write `backend/scripts/seed_admin.py`**
+- [ ] **Step 4: Write `backend/scripts/seed_admin.py`**
 
 ```python
 """Creates the first board administrator: a Cognito user plus a matching Users-table record.
 
-Usage:
-    python scripts/seed_admin.py --email board@boombayan.org --password 'TempPass123!'
+Usage (run from the backend/ directory, as a module so `app` is importable — see Step 1):
+    python -m scripts.seed_admin --email board@boombayan.org --password 'TempPass123!'
 """
 
 import argparse
@@ -1163,21 +1179,23 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 5: Run test to verify it passes**
 
 ```bash
 pytest tests/test_seed_admin.py -v
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add backend/scripts/seed_admin.py backend/tests/test_seed_admin.py
+git add backend/scripts/__init__.py backend/scripts/seed_admin.py backend/tests/test_seed_admin.py
 git commit -m "feat: add seed script for first admin user"
 ```
 
-- [ ] **Step 6: Run the script against the real deployed stack to create your own login**
+- [ ] **Step 7: Run the script against the real deployed stack to create your own login**
+
+Run as a module (`-m scripts.seed_admin`), not as a script path (`scripts/seed_admin.py`) — see Step 1's note for why. Use the venv's Python explicitly, not bare `python` (this shell's `python`/`pip` aliases bypass the venv — see Task 1's report).
 
 ```bash
 cd backend
@@ -1185,7 +1203,7 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<UserPoolId from Task 6 deploy output> \
 COGNITO_CLIENT_ID=<UserPoolClientId from Task 6 deploy output> \
 AWS_REGION=us-east-1 \
-python scripts/seed_admin.py --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email you@yourdomain.com --password 'YourRealPassword123!'
 cd ..
 ```
 Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`. The password is set as permanent, so you can log in with it directly — no forced password-change step.
@@ -2182,7 +2200,7 @@ cat frontend/.env.local
 ```
 Expected: three lines with real (non-placeholder) values for `VITE_COGNITO_USER_POOL_ID`, `VITE_COGNITO_CLIENT_ID` (from Task 6's deploy output) and `VITE_API_BASE_URL` (from Task 4's deploy output, no trailing slash). Create this file from `frontend/.env.local.example` if it doesn't exist yet.
 
-- [ ] **Step 2: Confirm the seed admin account exists** (skip if already done in Task 10, Step 6)
+- [ ] **Step 2: Confirm the seed admin account exists** (skip if already done in Task 10, Step 7)
 
 ```bash
 cd backend
@@ -2190,7 +2208,7 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<UserPoolId> \
 COGNITO_CLIENT_ID=<UserPoolClientId> \
 AWS_REGION=us-east-1 \
-python scripts/seed_admin.py --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email you@yourdomain.com --password 'YourRealPassword123!'
 cd ..
 ```
 Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`.
@@ -2294,7 +2312,7 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<from deploy output> \
 COGNITO_CLIENT_ID=<from deploy output> \
 AWS_REGION=us-east-1 \
-python scripts/seed_admin.py --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email you@yourdomain.com --password 'YourRealPassword123!'
 \`\`\`
 
 ## Running tests

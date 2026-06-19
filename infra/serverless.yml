@@ -8,6 +8,11 @@ provider:
   region: us-east-1
   stage: ${opt:stage, 'dev'}
 
+# Patterns preserve the `backend/` prefix in the zip (Serverless's `../` traversal
+# doesn't rebase paths), so the handler below is backend.app.handler.handler, not
+# app.handler.handler. Any new file added under backend/app/ is auto-included by
+# the second pattern; anything added under backend/ but outside backend/app/ that
+# needs to ship in the Lambda package needs its own explicit pattern entry here.
 package:
   patterns:
     - '!**'
@@ -17,6 +22,8 @@ package:
 custom:
   pythonRequirements:
     fileName: ../backend/requirements.txt
+    # true: pydantic-core (and other native deps) must be built as Linux wheels
+    # via Docker — building on macOS produces darwin .so files Lambda can't load.
     dockerizePip: true
 
 plugins:
