@@ -357,21 +357,24 @@ package:
   patterns:
     - '!**'
     - '../backend/app/**'
+    - '../backend/__init__.py'
 
 custom:
   pythonRequirements:
     fileName: ../backend/requirements.txt
-    dockerizePip: false
+    dockerizePip: true
 
 plugins:
   - serverless-python-requirements
 
 functions:
   api:
-    handler: app.handler.handler
+    handler: backend.app.handler.handler
     events:
       - httpApi: '*'
 ```
+
+Note: the handler path is `backend.app.handler.handler`, not `app.handler.handler`. Serverless Framework's `../` traversal patterns preserve the `backend/` path segment when copying files into the zip rather than flattening it, so the deployed code lands at `backend/app/...` inside the zip, not `app/...` at the zip root. The handler path (and the Python module path Lambda imports) must match that on-disk layout. This requires `backend/__init__.py` to exist (added in Task 4's actual commit) so `backend` is an explicit package, and `backend/app/handler.py`/`backend/app/main.py` use relative imports (`.main`, `.routers`) rather than `from app...` so the same module tree resolves under both `backend.app.*` (Lambda) and `app.*` (local pytest, via `pythonpath = ["."]` rooted at `backend/`). Separately, `dockerizePip` must be `true` (not `false`) because `pydantic` depends on the native `pydantic-core` extension; building it on a non-Linux host (e.g. macOS) produces a `darwin` `.so` that Lambda's Linux runtime cannot load, raising `No module named 'pydantic_core._pydantic_core'` at import time.
 
 - [ ] **Step 4: Configure AWS credentials (if not already done)**
 
@@ -398,9 +401,10 @@ Expected: `{"status":"ok"}`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add infra/package.json infra/package-lock.json infra/serverless.yml
+git add infra/package.json infra/package-lock.json infra/serverless.yml backend/__init__.py backend/app/handler.py backend/app/main.py
 git commit -m "chore: deploy FastAPI health endpoint via Serverless Framework"
 ```
+(`backend/__init__.py` is new, and `backend/app/handler.py`/`backend/app/main.py` change `from app...` imports to relative imports — both required for the `backend.app.handler.handler` path above to actually import correctly under Lambda; see the note after Step 3.)
 
 ---
 
