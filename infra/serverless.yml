@@ -1,0 +1,29 @@
+service: boombayan-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+
+package:
+  patterns:
+    - '!**'
+    - '../backend/app/**'
+    - '../backend/__init__.py'
+
+custom:
+  pythonRequirements:
+    fileName: ../backend/requirements.txt
+    dockerizePip: true
+
+plugins:
+  - serverless-python-requirements
+
+functions:
+  api:
+    handler: backend.app.handler.handler
+    events:
+      - httpApi: '*'
