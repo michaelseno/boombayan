@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, useAuth } from './AuthContext'
-import { login as cognitoLogin } from './cognito'
+import { login as cognitoLogin, LoginResult } from './cognito'
 
 vi.mock('./cognito', () => ({
   login: vi.fn(),
@@ -44,7 +44,7 @@ describe('AuthProvider', () => {
     })
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
-    let loginResult
+    let loginResult: LoginResult | undefined
     await act(async () => {
       loginResult = await result.current.login('board@boombayan.org', 'temp-password')
     })
