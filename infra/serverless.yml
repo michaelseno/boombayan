@@ -88,6 +88,9 @@ resources:
       Type: AWS::Cognito::UserPool
       Properties:
         UserPoolName: ${self:service}-${sls:stage}-users
+        # Prevents accidental `serverless remove`/stack rollback from wiping
+        # the only store of board members' login credentials.
+        DeletionProtection: ACTIVE
         UsernameAttributes:
           - email
         AutoVerifiedAttributes:
