@@ -1,6 +1,13 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 import { AuthTokens, LoginResult, login as cognitoLogin } from './cognito'
 
+// Plaintext localStorage is an intentional, proportionate choice for this
+// app's threat model (internal tool, ~5 known board members) — a JWT is
+// already an unencrypted bearer credential the moment it exists in JS
+// memory, so this isn't removing any encryption that would otherwise
+// exist. The real tradeoff vs. an httpOnly cookie is XSS exposure surface,
+// and adopting cookies would require backend cookie-setting/CORS work that
+// doesn't exist anywhere in this plan. Revisit if the threat model changes.
 const STORAGE_KEY = 'boombayan.auth.idToken'
 
 interface AuthContextValue {
@@ -34,6 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function setTokens(tokens: AuthTokens) {
+    // accessToken/refreshToken are intentionally not persisted: nothing
+    // downstream needs them yet (the API client only sends idToken), and
+    // there's no session-refresh flow in this plan — the ID token's
+    // ~1-hour Cognito expiry forces a full re-login, not a silent refresh.
     setIdToken(tokens.idToken)
   }
 
