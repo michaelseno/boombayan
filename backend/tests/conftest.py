@@ -11,6 +11,15 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def _clear_dependency_overrides():
+    # app.dependency_overrides is a single app-global dict, not per-test —
+    # without this, a test that overrides a dependency and raises before its
+    # own `del` cleanup would leak that override into every later test.
+    yield
+    app.dependency_overrides.clear()
+
+
 @pytest.fixture
 def dynamodb_users_table(monkeypatch):
     # app/db.py creates its boto3 resource lazily (inside each function call,
