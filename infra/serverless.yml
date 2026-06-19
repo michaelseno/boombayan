@@ -7,6 +7,23 @@ provider:
   runtime: python3.12
   region: us-east-1
   stage: ${opt:stage, 'dev'}
+  environment:
+    USERS_TABLE: ${self:service}-${sls:stage}-users
+    CONFIG_TABLE: ${self:service}-${sls:stage}-config
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - !GetAtt UsersTable.Arn
+            - !GetAtt ConfigTable.Arn
 
 # Patterns preserve the `backend/` prefix in the zip (Serverless's `../` traversal
 # doesn't rebase paths), so the handler below is backend.app.handler.handler, not
@@ -34,3 +51,29 @@ functions:
     handler: backend.app.handler.handler
     events:
       - httpApi: '*'
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USERS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: UserId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: UserId
+            KeyType: HASH
+
+    ConfigTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.CONFIG_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: ConfigKey
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ConfigKey
+            KeyType: HASH
