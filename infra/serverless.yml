@@ -65,6 +65,8 @@ resources:
         KeySchema:
           - AttributeName: UserId
             KeyType: HASH
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
 
     ConfigTable:
       Type: AWS::DynamoDB::Table
@@ -77,3 +79,5 @@ resources:
         KeySchema:
           - AttributeName: ConfigKey
             KeyType: HASH
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
