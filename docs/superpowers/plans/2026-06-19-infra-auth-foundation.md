@@ -1087,6 +1087,16 @@ def test_create_cognito_user_returns_sub(cognito_user_pool):
     assert user_id
 
 
+def test_create_cognito_user_leaves_force_change_password_status(cognito_user_pool):
+    from scripts.seed_admin import create_cognito_user
+
+    create_cognito_user("board@boombayan.org", "TempPass123!")
+
+    client = boto3.client("cognito-idp", region_name="us-east-1")
+    response = client.admin_get_user(UserPoolId=cognito_user_pool, Username="board@boombayan.org")
+    assert response["UserStatus"] == "FORCE_CHANGE_PASSWORD"
+
+
 def test_main_creates_cognito_user_and_users_table_record(
     cognito_user_pool, dynamodb_users_table, monkeypatch, capsys
 ):
@@ -1096,7 +1106,7 @@ def test_main_creates_cognito_user_and_users_table_record(
     monkeypatch.setattr(
         sys,
         "argv",
-        ["seed_admin.py", "--email", "board@boombayan.org", "--password", "TempPass123!"],
+        ["seed_admin.py", "--email", "board@boombayan.org", "--temporary-password", "TempPass123!"],
     )
     main()
 
@@ -1119,10 +1129,12 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'scripts.seed_admin'`
 - [ ] **Step 4: Write `backend/scripts/seed_admin.py`**
 
 ```python
-"""Creates the first board administrator: a Cognito user plus a matching Users-table record.
+"""Creates the first board administrator: a Cognito user (with a temporary
+password the board member must change on first login) plus a matching
+Users-table record.
 
 Usage (run from the backend/ directory, as a module so `app` is importable — see Step 1):
-    python -m scripts.seed_admin --email board@boombayan.org --password 'TempPass123!'
+    python -m scripts.seed_admin --email board@boombayan.org --temporary-password 'TempPass123!'
 """
 
 import argparse
@@ -1134,7 +1146,7 @@ from app.db import put_user
 from app.models.user import User
 
 
-def create_cognito_user(email: str, password: str) -> str:
+def create_cognito_user(email: str, temporary_password: str) -> str:
     client = boto3.client("cognito-idp", region_name=settings.aws_region)
     client.admin_create_user(
         UserPoolId=settings.cognito_user_pool_id,
@@ -1143,20 +1155,14 @@ def create_cognito_user(email: str, password: str) -> str:
             {"Name": "email", "Value": email},
             {"Name": "email_verified", "Value": "true"},
         ],
-        TemporaryPassword=password,
+        TemporaryPassword=temporary_password,
         MessageAction="SUPPRESS",
     )
-    # Immediately promote the temporary password to permanent. Without this,
-    # the user lands in FORCE_CHANGE_PASSWORD state and the first login
-    # returns a newPasswordRequired challenge instead of a session — which
-    # the frontend login client (Task 12) doesn't handle, since that flow is
-    # only needed for self-service invites, not this admin-bootstrap script.
-    client.admin_set_user_password(
-        UserPoolId=settings.cognito_user_pool_id,
-        Username=email,
-        Password=password,
-        Permanent=True,
-    )
+    # Deliberately left in FORCE_CHANGE_PASSWORD state: the board member sets
+    # their own permanent password on first login via Cognito's
+    # NEW_PASSWORD_REQUIRED challenge (handled by the frontend's login()
+    # function, Task 12, and LoginPage, Task 15). The admin running this
+    # script never learns anyone's real password.
     response = client.admin_get_user(
         UserPoolId=settings.cognito_user_pool_id,
         Username=email,
@@ -1167,10 +1173,10 @@ def create_cognito_user(email: str, password: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--email", required=True)
-    parser.add_argument("--password", required=True)
+    parser.add_argument("--temporary-password", required=True)
     args = parser.parse_args()
 
-    user_id = create_cognito_user(args.email, args.password)
+    user_id = create_cognito_user(args.email, args.temporary_password)
     put_user(User(user_id=user_id, email=args.email, is_administrator=True))
     print(f"Created admin user {args.email} with UserId {user_id}")
 
@@ -1184,7 +1190,7 @@ if __name__ == "__main__":
 ```bash
 pytest tests/test_seed_admin.py -v
 ```
-Expected: PASS (2 passed)
+Expected: PASS (3 passed)
 
 - [ ] **Step 6: Commit**
 
@@ -1193,9 +1199,9 @@ git add backend/scripts/__init__.py backend/scripts/seed_admin.py backend/tests/
 git commit -m "feat: add seed script for first admin user"
 ```
 
-- [ ] **Step 7: Run the script against the real deployed stack to create your own login**
+- [ ] **Step 7: Run the script against the real deployed stack to create each board member's login**
 
-Run as a module (`-m scripts.seed_admin`), not as a script path (`scripts/seed_admin.py`) — see Step 1's note for why. Use the venv's Python explicitly, not bare `python` (this shell's `python`/`pip` aliases bypass the venv — see Task 1's report).
+Run as a module (`-m scripts.seed_admin`), not as a script path (`scripts/seed_admin.py`) — see Step 1's note for why. Use the venv's Python explicitly, not bare `python` (this shell's `python`/`pip` aliases bypass the venv — see Task 1's report). Run once per board member, with their real email and a temporary password you choose (meets the pool's policy: min 10 chars, upper+lower+number; symbols optional) — share the temporary password with them out-of-band; they'll be forced to set their own permanent password on first login (Task 12/15), so this temporary value is never their real password.
 
 ```bash
 cd backend
@@ -1203,10 +1209,10 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<UserPoolId from Task 6 deploy output> \
 COGNITO_CLIENT_ID=<UserPoolClientId from Task 6 deploy output> \
 AWS_REGION=us-east-1 \
-.venv/bin/python -m scripts.seed_admin --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email <board-member-email> --temporary-password '<temporary-password>'
 cd ..
 ```
-Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`. The password is set as permanent, so you can log in with it directly — no forced password-change step.
+Expected: prints `Created admin user <email> with UserId <uuid>`. The user is left in `FORCE_CHANGE_PASSWORD` status — confirm with `aws cognito-idp admin-get-user --user-pool-id <UserPoolId> --username <board-member-email> --query UserStatus`, expect `"FORCE_CHANGE_PASSWORD"`. This account cannot be used to log in for real until the frontend's new-password flow exists (Task 12/15) — that's expected at this point in the plan.
 
 ---
 
@@ -1431,24 +1437,28 @@ Copy this to `frontend/.env.local` (already gitignored) and fill in the real `Us
 
 - [ ] **Step 3: Write the failing test** — `frontend/src/auth/cognito.test.ts`
 
+`login()` returns a discriminated-union result rather than bare tokens, because Cognito can respond to a login attempt in two genuinely different ways: a normal success, or — for an account still on its admin-issued temporary password (Task 10) — a `NEW_PASSWORD_REQUIRED` challenge that must be completed before any tokens exist. Callers (Task 15's `LoginPage`) branch on `result.status`.
+
 ```ts
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { login } from './cognito'
 
 const authenticateUser = vi.fn()
+const completeNewPasswordChallenge = vi.fn()
 
 vi.mock('amazon-cognito-identity-js', () => ({
   CognitoUserPool: vi.fn(),
-  CognitoUser: vi.fn().mockImplementation(() => ({ authenticateUser })),
+  CognitoUser: vi.fn().mockImplementation(() => ({ authenticateUser, completeNewPasswordChallenge })),
   AuthenticationDetails: vi.fn(),
 }))
 
 describe('login', () => {
   beforeEach(() => {
     authenticateUser.mockReset()
+    completeNewPasswordChallenge.mockReset()
   })
 
-  it('resolves with tokens on successful authentication', async () => {
+  it('resolves with a success result containing tokens on successful authentication', async () => {
     authenticateUser.mockImplementation((_details, callbacks) => {
       callbacks.onSuccess({
         getIdToken: () => ({ getJwtToken: () => 'fake-id-token' }),
@@ -1457,11 +1467,14 @@ describe('login', () => {
       })
     })
 
-    const tokens = await login('board@boombayan.org', 'password123')
-    expect(tokens).toEqual({
-      idToken: 'fake-id-token',
-      accessToken: 'fake-access-token',
-      refreshToken: 'fake-refresh-token',
+    const result = await login('board@boombayan.org', 'password123')
+    expect(result).toEqual({
+      status: 'success',
+      tokens: {
+        idToken: 'fake-id-token',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      },
     })
   })
 
@@ -1473,6 +1486,31 @@ describe('login', () => {
     await expect(login('board@boombayan.org', 'wrong-password')).rejects.toThrow(
       'Incorrect username or password.',
     )
+  })
+
+  it('resolves with a newPasswordRequired result that can complete the challenge', async () => {
+    authenticateUser.mockImplementation((_details, callbacks) => {
+      callbacks.newPasswordRequired({ email: 'board@boombayan.org' }, [])
+    })
+    completeNewPasswordChallenge.mockImplementation((_newPassword, _attrs, callbacks) => {
+      callbacks.onSuccess({
+        getIdToken: () => ({ getJwtToken: () => 'fake-id-token' }),
+        getAccessToken: () => ({ getJwtToken: () => 'fake-access-token' }),
+        getRefreshToken: () => ({ getToken: () => 'fake-refresh-token' }),
+      })
+    })
+
+    const result = await login('board@boombayan.org', 'temp-password')
+    expect(result.status).toBe('newPasswordRequired')
+    if (result.status !== 'newPasswordRequired') throw new Error('expected newPasswordRequired')
+
+    const tokens = await result.completeNewPassword('new-strong-password')
+    expect(tokens).toEqual({
+      idToken: 'fake-id-token',
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+    })
+    expect(completeNewPasswordChallenge).toHaveBeenCalledWith('new-strong-password', {}, expect.anything())
   })
 })
 ```
@@ -1491,6 +1529,7 @@ import {
   AuthenticationDetails,
   CognitoUser,
   CognitoUserPool,
+  CognitoUserSession,
 } from 'amazon-cognito-identity-js'
 
 export interface AuthTokens {
@@ -1499,6 +1538,10 @@ export interface AuthTokens {
   refreshToken: string
 }
 
+export type LoginResult =
+  | { status: 'success'; tokens: AuthTokens }
+  | { status: 'newPasswordRequired'; completeNewPassword: (newPassword: string) => Promise<AuthTokens> }
+
 function getUserPool(): CognitoUserPool {
   return new CognitoUserPool({
     UserPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
@@ -1506,7 +1549,15 @@ function getUserPool(): CognitoUserPool {
   })
 }
 
-export function login(email: string, password: string): Promise<AuthTokens> {
+function tokensFromSession(session: CognitoUserSession): AuthTokens {
+  return {
+    idToken: session.getIdToken().getJwtToken(),
+    accessToken: session.getAccessToken().getJwtToken(),
+    refreshToken: session.getRefreshToken().getToken(),
+  }
+}
+
+export function login(email: string, password: string): Promise<LoginResult> {
   const userPool = getUserPool()
   const cognitoUser = new CognitoUser({ Username: email, Pool: userPool })
   const authDetails = new AuthenticationDetails({ Username: email, Password: password })
@@ -1514,13 +1565,21 @@ export function login(email: string, password: string): Promise<AuthTokens> {
   return new Promise((resolve, reject) => {
     cognitoUser.authenticateUser(authDetails, {
       onSuccess: (session) => {
-        resolve({
-          idToken: session.getIdToken().getJwtToken(),
-          accessToken: session.getAccessToken().getJwtToken(),
-          refreshToken: session.getRefreshToken().getToken(),
-        })
+        resolve({ status: 'success', tokens: tokensFromSession(session) })
       },
       onFailure: (err) => reject(err),
+      newPasswordRequired: () => {
+        resolve({
+          status: 'newPasswordRequired',
+          completeNewPassword: (newPassword: string) =>
+            new Promise((resolveChallenge, rejectChallenge) => {
+              cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
+                onSuccess: (session) => resolveChallenge(tokensFromSession(session)),
+                onFailure: (err) => rejectChallenge(err),
+              })
+            }),
+        })
+      },
     })
   })
 }
@@ -1531,7 +1590,7 @@ export function login(email: string, password: string): Promise<AuthTokens> {
 ```bash
 npx vitest run src/auth/cognito.test.ts
 ```
-Expected: PASS (2 passed)
+Expected: PASS (3 passed)
 
 - [ ] **Step 7: Commit**
 
@@ -1550,6 +1609,8 @@ git commit -m "feat: add Cognito login client"
 - Test: `frontend/src/auth/AuthContext.test.tsx`
 
 - [ ] **Step 1: Write the failing test** — `frontend/src/auth/AuthContext.test.tsx`
+
+`login()` here mirrors `cognito.ts`'s `LoginResult` shape: it sets `idToken` immediately on a `success` result, but for `newPasswordRequired` it does NOT set anything — there are no tokens yet, only a challenge to complete. `setTokens()` is the method `LoginPage` (Task 15) calls once that challenge is completed.
 
 ```tsx
 import { act, renderHook } from '@testing-library/react'
@@ -1574,9 +1635,12 @@ describe('AuthProvider', () => {
 
   it('sets idToken and persists it to localStorage after a successful login', async () => {
     vi.mocked(cognitoLogin).mockResolvedValue({
-      idToken: 'fake-id-token',
-      accessToken: 'fake-access-token',
-      refreshToken: 'fake-refresh-token',
+      status: 'success',
+      tokens: {
+        idToken: 'fake-id-token',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      },
     })
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
@@ -1588,11 +1652,45 @@ describe('AuthProvider', () => {
     expect(localStorage.getItem('boombayan.auth.idToken')).toBe('fake-id-token')
   })
 
+  it('does not set idToken when login returns newPasswordRequired', async () => {
+    vi.mocked(cognitoLogin).mockResolvedValue({
+      status: 'newPasswordRequired',
+      completeNewPassword: vi.fn(),
+    })
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+    let loginResult
+    await act(async () => {
+      loginResult = await result.current.login('board@boombayan.org', 'temp-password')
+    })
+
+    expect(loginResult?.status).toBe('newPasswordRequired')
+    expect(result.current.idToken).toBeNull()
+  })
+
+  it('setTokens sets idToken and persists it to localStorage', () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+    act(() => {
+      result.current.setTokens({
+        idToken: 'fake-id-token',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      })
+    })
+
+    expect(result.current.idToken).toBe('fake-id-token')
+    expect(localStorage.getItem('boombayan.auth.idToken')).toBe('fake-id-token')
+  })
+
   it('clears idToken and localStorage on logout', async () => {
     vi.mocked(cognitoLogin).mockResolvedValue({
-      idToken: 'fake-id-token',
-      accessToken: 'fake-access-token',
-      refreshToken: 'fake-refresh-token',
+      status: 'success',
+      tokens: {
+        idToken: 'fake-id-token',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      },
     })
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
     await act(async () => {
@@ -1620,13 +1718,14 @@ Expected: FAIL — `Failed to resolve import "./AuthContext"`
 
 ```tsx
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
-import { AuthTokens, login as cognitoLogin } from './cognito'
+import { AuthTokens, LoginResult, login as cognitoLogin } from './cognito'
 
 const STORAGE_KEY = 'boombayan.auth.idToken'
 
 interface AuthContextValue {
   idToken: string | null
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<LoginResult>
+  setTokens: (tokens: AuthTokens) => void
   logout: () => void
 }
 
@@ -1645,8 +1744,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [idToken])
 
-  async function login(email: string, password: string) {
-    const tokens: AuthTokens = await cognitoLogin(email, password)
+  async function login(email: string, password: string): Promise<LoginResult> {
+    const result = await cognitoLogin(email, password)
+    if (result.status === 'success') {
+      setIdToken(result.tokens.idToken)
+    }
+    return result
+  }
+
+  function setTokens(tokens: AuthTokens) {
     setIdToken(tokens.idToken)
   }
 
@@ -1655,7 +1761,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ idToken, login, logout }}>
+    <AuthContext.Provider value={{ idToken, login, setTokens, logout }}>
       {children}
     </AuthContext.Provider>
   )
@@ -1675,7 +1781,7 @@ export function useAuth(): AuthContextValue {
 ```bash
 npx vitest run src/auth/AuthContext.test.tsx
 ```
-Expected: PASS (3 passed)
+Expected: PASS (5 passed)
 
 - [ ] **Step 5: Commit**
 
@@ -1721,13 +1827,23 @@ function renderWithRoutes(initialPath: string) {
 
 describe('ProtectedRoute', () => {
   it('redirects to /login when there is no idToken', () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: null, login: vi.fn(), logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({
+      idToken: null,
+      login: vi.fn(),
+      setTokens: vi.fn(),
+      logout: vi.fn(),
+    })
     renderWithRoutes('/dashboard')
     expect(screen.getByText('Login Page')).toBeInTheDocument()
   })
 
   it('renders the nested route when idToken is present', () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: 'token', login: vi.fn(), logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({
+      idToken: 'token',
+      login: vi.fn(),
+      setTokens: vi.fn(),
+      logout: vi.fn(),
+    })
     renderWithRoutes('/dashboard')
     expect(screen.getByText('Dashboard Page')).toBeInTheDocument()
   })
@@ -1781,6 +1897,8 @@ git commit -m "feat: add ProtectedRoute guard"
 
 - [ ] **Step 1: Write the failing test** — `frontend/src/pages/LoginPage.test.tsx`
 
+Board members are seeded (Task 10) with a temporary password, so the first real login for each of them returns `newPasswordRequired`, not `success` — this page needs to handle that as the *normal*, expected first-login path, not an edge case.
+
 ```tsx
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -1794,8 +1912,11 @@ vi.mock('../auth/AuthContext', () => ({
 
 describe('LoginPage', () => {
   it('calls login with the entered email and password on submit', async () => {
-    const login = vi.fn().mockResolvedValue(undefined)
-    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, logout: vi.fn() })
+    const login = vi.fn().mockResolvedValue({
+      status: 'success',
+      tokens: { idToken: 'fake-id-token', accessToken: 'fake-access-token', refreshToken: 'fake-refresh-token' },
+    })
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens: vi.fn(), logout: vi.fn() })
 
     render(
       <MemoryRouter>
@@ -1812,7 +1933,7 @@ describe('LoginPage', () => {
 
   it('shows an error message when login fails', async () => {
     const login = vi.fn().mockRejectedValue(new Error('Incorrect username or password.'))
-    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens: vi.fn(), logout: vi.fn() })
 
     render(
       <MemoryRouter>
@@ -1825,6 +1946,61 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password.')
+  })
+
+  it('shows the new-password form on newPasswordRequired, and completes login on submit', async () => {
+    const completeNewPassword = vi.fn().mockResolvedValue({
+      idToken: 'fake-id-token',
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+    })
+    const login = vi.fn().mockResolvedValue({ status: 'newPasswordRequired', completeNewPassword })
+    const setTokens = vi.fn()
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens, logout: vi.fn() })
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'board@boombayan.org' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'temp-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    expect(await screen.findByLabelText('New password')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'new-strong-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Set password' }))
+
+    await waitFor(() => expect(completeNewPassword).toHaveBeenCalledWith('new-strong-password'))
+    expect(setTokens).toHaveBeenCalledWith({
+      idToken: 'fake-id-token',
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+    })
+  })
+
+  it('shows an error when completing the new-password challenge fails', async () => {
+    const completeNewPassword = vi.fn().mockRejectedValue(new Error('Password does not meet requirements.'))
+    const login = vi.fn().mockResolvedValue({ status: 'newPasswordRequired', completeNewPassword })
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens: vi.fn(), logout: vi.fn() })
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'board@boombayan.org' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'temp-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    await screen.findByLabelText('New password')
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'weak' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Set password' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not set new password. Please try again.')
   })
 })
 ```
@@ -1841,24 +2017,64 @@ Expected: FAIL — `Failed to resolve import "./LoginPage"`
 ```tsx
 import { FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AuthTokens } from '../auth/cognito'
 import { useAuth } from '../auth/AuthContext'
+
+type CompleteNewPassword = (newPassword: string) => Promise<AuthTokens>
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const { login } = useAuth()
+  const [newPassword, setNewPassword] = useState('')
+  const [newPasswordError, setNewPasswordError] = useState<string | null>(null)
+  const [completeNewPassword, setCompleteNewPassword] = useState<CompleteNewPassword | null>(null)
+  const { login, setTokens } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
     try {
-      await login(email, password)
-      navigate('/dashboard')
+      const result = await login(email, password)
+      if (result.status === 'newPasswordRequired') {
+        setCompleteNewPassword(() => result.completeNewPassword)
+      } else {
+        navigate('/dashboard')
+      }
     } catch {
       setError('Invalid email or password.')
     }
+  }
+
+  async function handleNewPasswordSubmit(event: FormEvent) {
+    event.preventDefault()
+    setNewPasswordError(null)
+    try {
+      const tokens = await completeNewPassword!(newPassword)
+      setTokens(tokens)
+      navigate('/dashboard')
+    } catch {
+      setNewPasswordError('Could not set new password. Please try again.')
+    }
+  }
+
+  if (completeNewPassword) {
+    return (
+      <form onSubmit={handleNewPasswordSubmit}>
+        <h1>Set a new password</h1>
+        <label htmlFor="new-password">New password</label>
+        <input
+          id="new-password"
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+        />
+        {newPasswordError && <p role="alert">{newPasswordError}</p>}
+        <button type="submit">Set password</button>
+      </form>
+    )
   }
 
   return (
@@ -1892,7 +2108,7 @@ export function LoginPage() {
 ```bash
 npx vitest run src/pages/LoginPage.test.tsx
 ```
-Expected: PASS (2 passed)
+Expected: PASS (4 passed)
 
 - [ ] **Step 5: Commit**
 
@@ -2042,7 +2258,7 @@ vi.mock('../auth/AuthContext', () => ({
 
 describe('DashboardPage', () => {
   it('shows the current user email after loading', async () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
     vi.mocked(apiFetch).mockResolvedValue({
       user_id: 'abc123',
       email: 'board@boombayan.org',
@@ -2059,7 +2275,7 @@ describe('DashboardPage', () => {
   })
 
   it('shows an error message when the profile fetch fails', async () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
     vi.mocked(apiFetch).mockRejectedValue(new Error('boom'))
 
     render(<DashboardPage />)
@@ -2200,7 +2416,7 @@ cat frontend/.env.local
 ```
 Expected: three lines with real (non-placeholder) values for `VITE_COGNITO_USER_POOL_ID`, `VITE_COGNITO_CLIENT_ID` (from Task 6's deploy output) and `VITE_API_BASE_URL` (from Task 4's deploy output, no trailing slash). Create this file from `frontend/.env.local.example` if it doesn't exist yet.
 
-- [ ] **Step 2: Confirm the seed admin account exists** (skip if already done in Task 10, Step 7)
+- [ ] **Step 2: Confirm a seed admin account exists** (skip if already done in Task 10, Step 7)
 
 ```bash
 cd backend
@@ -2208,10 +2424,10 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<UserPoolId> \
 COGNITO_CLIENT_ID=<UserPoolClientId> \
 AWS_REGION=us-east-1 \
-.venv/bin/python -m scripts.seed_admin --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email you@yourdomain.com --temporary-password 'TempPassword123!'
 cd ..
 ```
-Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`.
+Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`. The account is left in `FORCE_CHANGE_PASSWORD` status — that's expected, Step 5 below completes it.
 
 - [ ] **Step 3: Start the frontend dev server**
 
@@ -2225,15 +2441,16 @@ Expected: prints a local URL, typically `http://localhost:5173/`.
 Navigate to `http://localhost:5173/`.
 Expected: redirected to `/login`, showing the "Boombayan LMS" heading and email/password fields.
 
-- [ ] **Step 5: Log in with the seeded admin credentials**
+- [ ] **Step 5: Log in with the temporary credentials and set a real password**
 
-Enter the email and password from Step 2, click "Log in".
-Expected: redirected to `/dashboard`, briefly shows "Loading...", then shows "Welcome, you@yourdomain.com" and "Administrator".
+Enter the email and temporary password from Step 2, click "Log in".
+Expected: instead of going straight to the dashboard, the page shows "Set a new password" with a single password field — this is the `NEW_PASSWORD_REQUIRED` challenge, the first-login path every seeded account takes. Enter a real password (meets the pool's policy: min 10 chars, upper+lower+number), click "Set password".
+Expected: redirected to `/dashboard`, briefly shows "Loading...", then shows "Welcome, you@yourdomain.com" and "Administrator". Confirm via `aws cognito-idp admin-get-user --user-pool-id <UserPoolId> --username you@yourdomain.com --query UserStatus` that status is now `"CONFIRMED"`, not `"FORCE_CHANGE_PASSWORD"`.
 
 - [ ] **Step 6: Verify logout and re-protection**
 
 Click "Log out".
-Expected: returns to `/login`. Manually navigating the browser to `http://localhost:5173/dashboard` redirects back to `/login` (no idToken).
+Expected: returns to `/login`. Manually navigating the browser to `http://localhost:5173/dashboard` redirects back to `/login` (no idToken). Logging back in with the email and the *real* password set in Step 5 (the temporary password no longer works) should go straight to `/dashboard` — no new-password form this time, since the account is now `CONFIRMED`.
 
 - [ ] **Step 7: Stop the dev server**
 
@@ -2302,9 +2519,9 @@ npx serverless deploy
 Deploy output includes the API Gateway URL and the Cognito `UserPoolId` /
 `UserPoolClientId` — copy these into `frontend/.env.local`.
 
-## Creating the first admin login
+## Creating board member logins
 
-There's no self-registration. After deploying, create the first board administrator:
+There's no self-registration. After deploying, create each board member's account with a temporary password (share it with them out-of-band — they'll be forced to set their own permanent password on first login):
 
 \`\`\`bash
 cd backend
@@ -2312,7 +2529,7 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<from deploy output> \
 COGNITO_CLIENT_ID=<from deploy output> \
 AWS_REGION=us-east-1 \
-.venv/bin/python -m scripts.seed_admin --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email <board-member-email> --temporary-password '<temporary-password>'
 \`\`\`
 
 ## Running tests
