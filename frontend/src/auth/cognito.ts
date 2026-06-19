@@ -30,6 +30,11 @@ function tokensFromSession(session: CognitoUserSession): AuthTokens {
   }
 }
 
+// Only onSuccess/onFailure/newPasswordRequired are handled below because
+// this User Pool has no MFA configured (see infra/serverless.yml). If MFA
+// is ever added, authenticateUser would call mfaRequired/totpRequired
+// instead, which this function doesn't handle — the returned promise would
+// never resolve or reject.
 export function login(email: string, password: string): Promise<LoginResult> {
   const userPool = getUserPool()
   const cognitoUser = new CognitoUser({ Username: email, Pool: userPool })

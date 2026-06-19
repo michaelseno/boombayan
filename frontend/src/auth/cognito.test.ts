@@ -70,4 +70,21 @@ describe('login', () => {
     })
     expect(completeNewPasswordChallenge).toHaveBeenCalledWith('new-strong-password', {}, expect.anything())
   })
+
+  it('rejects when completing the new-password challenge fails', async () => {
+    authenticateUser.mockImplementation((_details, callbacks) => {
+      callbacks.newPasswordRequired({ email: 'board@boombayan.org' }, [])
+    })
+    completeNewPasswordChallenge.mockImplementation((_newPassword, _attrs, callbacks) => {
+      callbacks.onFailure(new Error('Password does not conform to policy.'))
+    })
+
+    const result = await login('board@boombayan.org', 'temp-password')
+    expect(result.status).toBe('newPasswordRequired')
+    if (result.status !== 'newPasswordRequired') throw new Error('expected newPasswordRequired')
+
+    await expect(result.completeNewPassword('weak')).rejects.toThrow(
+      'Password does not conform to policy.',
+    )
+  })
 })
