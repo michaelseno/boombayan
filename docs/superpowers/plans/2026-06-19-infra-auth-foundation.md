@@ -255,6 +255,9 @@ git commit -m "feat: add health check endpoint"
 - [ ] **Step 1: Write the failing test** — `backend/tests/test_handler.py`
 
 ```python
+import json
+
+
 def test_handler_invokes_health_route():
     from app.handler import handler
 
@@ -265,13 +268,16 @@ def test_handler_invokes_health_route():
         "rawQueryString": "",
         "headers": {},
         "requestContext": {
-            "http": {"method": "GET", "path": "/health"},
+            # sourceIp is required: Mangum 0.17.0's HTTPGateway.scope does a
+            # direct dict index on requestContext.http.sourceIp for v2.0
+            # events (no .get() fallback) — omitting it raises KeyError.
+            "http": {"method": "GET", "path": "/health", "sourceIp": "127.0.0.1"},
         },
         "isBase64Encoded": False,
     }
     response = handler(event, None)
     assert response["statusCode"] == 200
-    assert "ok" in response["body"]
+    assert json.loads(response["body"]) == {"status": "ok"}
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
