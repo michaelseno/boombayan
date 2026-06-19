@@ -10,6 +10,8 @@ provider:
   environment:
     USERS_TABLE: ${self:service}-${sls:stage}-users
     CONFIG_TABLE: ${self:service}-${sls:stage}-config
+    COGNITO_USER_POOL_ID: !Ref CognitoUserPool
+    COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
   iam:
     role:
       statements:
@@ -81,3 +83,35 @@ resources:
             KeyType: HASH
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
+
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:service}-${sls:stage}-users
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 10
+            RequireUppercase: true
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: false
+
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:service}-${sls:stage}-web
+        UserPoolId: !Ref CognitoUserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        GenerateSecret: false
+
+  Outputs:
+    UserPoolId:
+      Value: !Ref CognitoUserPool
+    UserPoolClientId:
+      Value: !Ref CognitoUserPoolClient
