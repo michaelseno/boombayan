@@ -108,3 +108,20 @@ def test_put_member_persists_fractional_monetary_amounts(dynamodb_members_table)
 
     fetched = get_member_by_id("mem-1")
     assert fetched == member
+
+
+def test_get_config_returns_defaults_when_not_set(dynamodb_config_table):
+    from app.db import get_config
+    from app.models.config import Config
+
+    assert get_config() == Config()
+
+
+def test_put_and_get_config_roundtrip(dynamodb_config_table):
+    from app.db import get_config, put_config
+    from app.models.config import Config
+
+    config = Config(share_value=500, max_shares_per_member=5)
+    put_config(config)
+
+    assert get_config() == config

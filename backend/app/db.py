@@ -3,6 +3,7 @@ from decimal import Decimal
 import boto3
 
 from .config import settings
+from .models.config import Config
 from .models.member import Member, MemberStatus, ShareHistoryEntry
 from .models.user import User
 
@@ -116,3 +117,27 @@ def put_member(member: Member) -> None:
 def list_members() -> list[Member]:
     response = get_members_table().scan()
     return [_member_from_item(item) for item in response["Items"]]
+
+
+CONFIG_KEY = "global"
+
+
+def get_config() -> Config:
+    response = get_config_table().get_item(Key={"ConfigKey": CONFIG_KEY})
+    item = response.get("Item")
+    if item is None:
+        return Config()
+    return Config(
+        share_value=float(item.get("ShareValue", 0)),
+        max_shares_per_member=int(item.get("MaxSharesPerMember", 5)),
+    )
+
+
+def put_config(config: Config) -> None:
+    get_config_table().put_item(
+        Item={
+            "ConfigKey": CONFIG_KEY,
+            "ShareValue": Decimal(str(config.share_value)),
+            "MaxSharesPerMember": config.max_shares_per_member,
+        }
+    )
