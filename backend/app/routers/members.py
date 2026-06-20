@@ -89,6 +89,7 @@ def purchase_shares(
     amount_paid = body.shares_purchased * config.share_value
     member.share_history.append(
         ShareHistoryEntry(
+            # No Cycle entity yet (deferred to future plan); always None for now, not a bug
             cycle_id=None,
             shares_purchased=body.shares_purchased,
             share_value_at_purchase=config.share_value,
