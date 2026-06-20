@@ -2415,16 +2415,18 @@ git commit -m "feat: add DashboardPage and wire up app routing"
 
 This wires together every prior task against the real deployed AWS stack — no mocks. It's the actual proof that login works.
 
+**Execution note:** run via a scripted headless-Chromium (Playwright) session rather than a human clicking through a browser, since no interactive GUI was available — same steps, same real deployed stack, same real seeded account. This run found and fixed three real bugs that 37 passing unit/integration tests never caught (see "Three real bugs found only by Task 18's live browser test" in the Plan Self-Review Notes at the end of this document): a missing `global` browser polyfill, a Cognito auth-flow mismatch (`ALLOW_USER_SRP_AUTH` required, not `ALLOW_USER_PASSWORD_AUTH`), and a CORS preflight failure caused by API Gateway's automatic CORS not engaging on a `$default` catch-all route. All steps below were completed and verified after those fixes, with zero browser console errors. The seeded account (michaelseno@gmail.com) completed its real `NEW_PASSWORD_REQUIRED` challenge and is now `CONFIRMED`.
+
 **Files:** none (manual verification only).
 
-- [ ] **Step 1: Confirm `frontend/.env.local` has real values**
+- [x] **Step 1: Confirm `frontend/.env.local` has real values**
 
 ```bash
 cat frontend/.env.local
 ```
 Expected: three lines with real (non-placeholder) values for `VITE_COGNITO_USER_POOL_ID`, `VITE_COGNITO_CLIENT_ID` (from Task 6's deploy output) and `VITE_API_BASE_URL` (from Task 4's deploy output, no trailing slash). Create this file from `frontend/.env.local.example` if it doesn't exist yet.
 
-- [ ] **Step 2: Confirm a seed admin account exists** (skip if already done in Task 10, Step 7)
+- [x] **Step 2: Confirm a seed admin account exists** (skip if already done in Task 10, Step 7)
 
 ```bash
 cd backend
@@ -2437,30 +2439,30 @@ cd ..
 ```
 Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`. The account is left in `FORCE_CHANGE_PASSWORD` status — that's expected, Step 5 below completes it.
 
-- [ ] **Step 3: Start the frontend dev server**
+- [x] **Step 3: Start the frontend dev server**
 
 ```bash
 cd frontend && npm run dev
 ```
 Expected: prints a local URL, typically `http://localhost:5173/`.
 
-- [ ] **Step 4: Open the app in a browser**
+- [x] **Step 4: Open the app in a browser**
 
 Navigate to `http://localhost:5173/`.
 Expected: redirected to `/login`, showing the "Boombayan LMS" heading and email/password fields.
 
-- [ ] **Step 5: Log in with the temporary credentials and set a real password**
+- [x] **Step 5: Log in with the temporary credentials and set a real password**
 
 Enter the email and temporary password from Step 2, click "Log in".
 Expected: instead of going straight to the dashboard, the page shows "Set a new password" with a single password field — this is the `NEW_PASSWORD_REQUIRED` challenge, the first-login path every seeded account takes. Enter a real password (meets the pool's policy: min 10 chars, upper+lower+number), click "Set password".
 Expected: redirected to `/dashboard`, briefly shows "Loading...", then shows "Welcome, you@yourdomain.com" and "Administrator". Confirm via `aws cognito-idp admin-get-user --user-pool-id <UserPoolId> --username you@yourdomain.com --query UserStatus` that status is now `"CONFIRMED"`, not `"FORCE_CHANGE_PASSWORD"`.
 
-- [ ] **Step 6: Verify logout and re-protection**
+- [x] **Step 6: Verify logout and re-protection**
 
 Click "Log out".
 Expected: returns to `/login`. Manually navigating the browser to `http://localhost:5173/dashboard` redirects back to `/login` (no idToken). Logging back in with the email and the *real* password set in Step 5 (the temporary password no longer works) should go straight to `/dashboard` — no new-password form this time, since the account is now `CONFIRMED`.
 
-- [ ] **Step 7: Stop the dev server**
+- [x] **Step 7: Stop the dev server**
 
 ```bash
 # Ctrl+C in the terminal running npm run dev
