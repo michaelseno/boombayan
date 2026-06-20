@@ -83,3 +83,28 @@ def test_put_member_persists_share_history(dynamodb_members_table):
 
     fetched = get_member_by_id("mem-1")
     assert fetched == member
+
+
+def test_put_member_persists_fractional_monetary_amounts(dynamodb_members_table):
+    from app.db import get_member_by_id, put_member
+    from app.models.member import Member, ShareHistoryEntry
+
+    member = Member(
+        member_id="mem-1",
+        first_name="Ana",
+        last_name="Reyes",
+        email="ana@example.com",
+        phone="1",
+        date_joined="2026-01-15",
+        current_shares=2,
+        current_capital_amount=1000.10,
+        share_history=[
+            ShareHistoryEntry(
+                shares_purchased=2, share_value_at_purchase=500.25, amount_paid=1000.55, date="2026-02-01",
+            ),
+        ],
+    )
+    put_member(member)
+
+    fetched = get_member_by_id("mem-1")
+    assert fetched == member
