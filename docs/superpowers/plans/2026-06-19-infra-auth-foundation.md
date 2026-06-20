@@ -85,7 +85,7 @@ boombayan_project/
 - Create: `backend/requirements-dev.txt`
 - Create: `backend/app/__init__.py`
 
-- [ ] **Step 1: Create directory structure**
+- [x] **Step 1: Create directory structure**
 
 ```bash
 mkdir -p backend/app/models backend/app/routers backend/tests backend/scripts
@@ -93,7 +93,7 @@ touch backend/app/__init__.py backend/app/models/__init__.py backend/app/routers
 touch backend/tests/__init__.py
 ```
 
-- [ ] **Step 2: Write `.gitignore`**
+- [x] **Step 2: Write `.gitignore`**
 
 ```
 # Python
@@ -119,7 +119,7 @@ dist/
 .DS_Store
 ```
 
-- [ ] **Step 3: Write `backend/pyproject.toml`**
+- [x] **Step 3: Write `backend/pyproject.toml`**
 
 ```toml
 [tool.pytest.ini_options]
@@ -127,7 +127,7 @@ pythonpath = ["."]
 testpaths = ["tests"]
 ```
 
-- [ ] **Step 4: Write `backend/requirements.txt`**
+- [x] **Step 4: Write `backend/requirements.txt`**
 
 ```
 fastapi==0.115.0
@@ -138,7 +138,7 @@ pydantic==2.9.2
 pydantic-settings==2.5.2
 ```
 
-- [ ] **Step 5: Write `backend/requirements-dev.txt`**
+- [x] **Step 5: Write `backend/requirements-dev.txt`**
 
 ```
 -r requirements.txt
@@ -147,7 +147,7 @@ httpx==0.27.2
 moto[dynamodb,cognitoidp]==5.0.16
 ```
 
-- [ ] **Step 6: Create venv and install**
+- [x] **Step 6: Create venv and install**
 
 ```bash
 cd backend
@@ -159,7 +159,7 @@ cd ..
 
 Expected: install completes with no errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add .gitignore backend/pyproject.toml backend/requirements.txt backend/requirements-dev.txt backend/app/__init__.py backend/app/models/__init__.py backend/app/routers/__init__.py backend/tests/__init__.py
@@ -176,7 +176,7 @@ git commit -m "chore: scaffold backend Python project"
 - Create: `backend/tests/conftest.py`
 - Test: `backend/tests/test_health.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_health.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_health.py`
 
 ```python
 def test_health_returns_ok(client):
@@ -185,7 +185,7 @@ def test_health_returns_ok(client):
     assert response.json() == {"status": "ok"}
 ```
 
-- [ ] **Step 2: Write the test fixture** — `backend/tests/conftest.py`
+- [x] **Step 2: Write the test fixture** — `backend/tests/conftest.py`
 
 ```python
 import pytest
@@ -199,14 +199,14 @@ def client():
     return TestClient(app)
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 ```bash
 cd backend && source .venv/bin/activate && pytest tests/test_health.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.main'`
 
-- [ ] **Step 4: Write `backend/app/routers/health.py`**
+- [x] **Step 4: Write `backend/app/routers/health.py`**
 
 ```python
 from fastapi import APIRouter
@@ -219,7 +219,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 ```
 
-- [ ] **Step 5: Write `backend/app/main.py`**
+- [x] **Step 5: Write `backend/app/main.py`**
 
 ```python
 from fastapi import FastAPI
@@ -230,14 +230,14 @@ app = FastAPI(title="Boombayan LMS API")
 app.include_router(health.router)
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 pytest tests/test_health.py -v
 ```
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/main.py backend/app/routers/health.py backend/tests/conftest.py backend/tests/test_health.py
@@ -252,7 +252,7 @@ git commit -m "feat: add health check endpoint"
 - Create: `backend/app/handler.py`
 - Test: `backend/tests/test_handler.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_handler.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_handler.py`
 
 ```python
 import json
@@ -280,14 +280,14 @@ def test_handler_invokes_health_route():
     assert json.loads(response["body"]) == {"status": "ok"}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 pytest tests/test_handler.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.handler'`
 
-- [ ] **Step 3: Write `backend/app/handler.py`**
+- [x] **Step 3: Write `backend/app/handler.py`**
 
 ```python
 from mangum import Mangum
@@ -297,14 +297,14 @@ from app.main import app
 handler = Mangum(app)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 pytest tests/test_handler.py -v
 ```
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/handler.py backend/tests/test_handler.py
@@ -319,7 +319,7 @@ git commit -m "feat: add Mangum Lambda handler"
 - Create: `infra/package.json`
 - Create: `infra/serverless.yml`
 
-- [ ] **Step 1: Write `infra/package.json`**
+- [x] **Step 1: Write `infra/package.json`**
 
 ```json
 {
@@ -333,14 +333,14 @@ git commit -m "feat: add Mangum Lambda handler"
 }
 ```
 
-- [ ] **Step 2: Install infra dependencies**
+- [x] **Step 2: Install infra dependencies**
 
 ```bash
 cd infra && npm install && cd ..
 ```
 Expected: installs with no errors, creates `infra/node_modules/` and `infra/package-lock.json`.
 
-- [ ] **Step 3: Write `infra/serverless.yml`**
+- [x] **Step 3: Write `infra/serverless.yml`**
 
 ```yaml
 service: boombayan-api
@@ -376,21 +376,21 @@ functions:
 
 Note: the handler path is `backend.app.handler.handler`, not `app.handler.handler`. Serverless Framework's `../` traversal patterns preserve the `backend/` path segment when copying files into the zip rather than flattening it, so the deployed code lands at `backend/app/...` inside the zip, not `app/...` at the zip root. The handler path (and the Python module path Lambda imports) must match that on-disk layout. This requires `backend/__init__.py` to exist (added in Task 4's actual commit) so `backend` is an explicit package, and `backend/app/handler.py`/`backend/app/main.py` use relative imports (`.main`, `.routers`) rather than `from app...` so the same module tree resolves under both `backend.app.*` (Lambda) and `app.*` (local pytest, via `pythonpath = ["."]` rooted at `backend/`). Separately, `dockerizePip` must be `true` (not `false`) because `pydantic` depends on the native `pydantic-core` extension; building it on a non-Linux host (e.g. macOS) produces a `darwin` `.so` that Lambda's Linux runtime cannot load, raising `No module named 'pydantic_core._pydantic_core'` at import time.
 
-- [ ] **Step 4: Configure AWS credentials (if not already done)**
+- [x] **Step 4: Configure AWS credentials (if not already done)**
 
 ```bash
 aws sts get-caller-identity
 ```
 Expected: returns your AWS account ID, user/role ARN. If this fails, run `aws configure` with credentials for an AWS account you control before continuing — every later step in this plan deploys real resources to that account.
 
-- [ ] **Step 5: Deploy**
+- [x] **Step 5: Deploy**
 
 ```bash
 cd infra && npx serverless deploy && cd ..
 ```
 Expected: output ends with an `endpoints:` section showing something like `ANY - https://<id>.execute-api.us-east-1.amazonaws.com/{proxy+}`.
 
-- [ ] **Step 6: Verify the deployed health endpoint**
+- [x] **Step 6: Verify the deployed health endpoint**
 
 ```bash
 curl https://<id>.execute-api.us-east-1.amazonaws.com/health
@@ -398,7 +398,7 @@ curl https://<id>.execute-api.us-east-1.amazonaws.com/health
 (substitute the actual URL host from the deploy output, path `/health`)
 Expected: `{"status":"ok"}`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add infra/package.json infra/package-lock.json infra/serverless.yml backend/__init__.py backend/app/handler.py backend/app/main.py
@@ -413,7 +413,7 @@ git commit -m "chore: deploy FastAPI health endpoint via Serverless Framework"
 **Files:**
 - Modify: `infra/serverless.yml`
 
-- [ ] **Step 1: Add table resources and IAM permissions to `infra/serverless.yml`**
+- [x] **Step 1: Add table resources and IAM permissions to `infra/serverless.yml`**
 
 Replace the `provider:` block and everything below `package:` with:
 
@@ -492,14 +492,14 @@ resources:
 
 This carries forward all three fixes from Task 4 (`backend.app.handler.handler` handler path, the 3-entry `package.patterns` including `../backend/__init__.py`, and `dockerizePip: true`) — do not revert to the original 2-entry pattern / `app.handler.handler` / `dockerizePip: false` shown in earlier drafts of this task, or the deploy will regress to the bugs Task 4 already fixed and verified.
 
-- [ ] **Step 2: Deploy the updated stack**
+- [x] **Step 2: Deploy the updated stack**
 
 ```bash
 cd infra && npx serverless deploy && cd ..
 ```
 Expected: deploy succeeds; output still shows the API endpoint.
 
-- [ ] **Step 3: Verify the tables exist**
+- [x] **Step 3: Verify the tables exist**
 
 ```bash
 aws dynamodb describe-table --table-name boombayan-api-dev-users --query 'Table.TableStatus'
@@ -507,7 +507,7 @@ aws dynamodb describe-table --table-name boombayan-api-dev-config --query 'Table
 ```
 Expected: both print `"ACTIVE"`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add infra/serverless.yml
@@ -521,7 +521,7 @@ git commit -m "feat: provision Users and Config DynamoDB tables"
 **Files:**
 - Modify: `infra/serverless.yml`
 
-- [ ] **Step 1: Add `COGNITO_USER_POOL_ID`/`COGNITO_CLIENT_ID` env vars**
+- [x] **Step 1: Add `COGNITO_USER_POOL_ID`/`COGNITO_CLIENT_ID` env vars**
 
 In `infra/serverless.yml`, under `provider.environment`, add two lines so the block reads:
 
@@ -533,7 +533,7 @@ In `infra/serverless.yml`, under `provider.environment`, add two lines so the bl
     COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
 ```
 
-- [ ] **Step 2: Add the Cognito resources**
+- [x] **Step 2: Add the Cognito resources**
 
 Under `resources.Resources`, after `ConfigTable`, add:
 
@@ -571,7 +571,7 @@ Under `resources.Resources`, after `ConfigTable`, add:
         GenerateSecret: false
 ```
 
-- [ ] **Step 3: Add stack outputs so the IDs are easy to read after deploy**
+- [x] **Step 3: Add stack outputs so the IDs are easy to read after deploy**
 
 Outputs are a sibling of `Resources` under the top-level `resources:` key (not a resource themselves). In `infra/serverless.yml`, change:
 
@@ -598,14 +598,14 @@ to add an `Outputs:` sibling block after `Resources:` (keep all the existing res
       Value: !Ref CognitoUserPoolClient
 ```
 
-- [ ] **Step 4: Deploy**
+- [x] **Step 4: Deploy**
 
 ```bash
 cd infra && npx serverless deploy && cd ..
 ```
 Expected: deploy succeeds; output includes a `Stack Outputs:` section listing `UserPoolId` and `UserPoolClientId` values — copy both down, they're needed for the seed script (Task 10) and the frontend (Task 12).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add infra/serverless.yml
@@ -622,7 +622,7 @@ git commit -m "feat: provision Cognito User Pool for authentication"
 - Create: `backend/app/models/user.py`
 - Test: `backend/tests/test_db.py`
 
-- [ ] **Step 1: Write `backend/app/config.py`**
+- [x] **Step 1: Write `backend/app/config.py`**
 
 ```python
 from pydantic_settings import BaseSettings
@@ -639,7 +639,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-- [ ] **Step 2: Write `backend/app/models/user.py`**
+- [x] **Step 2: Write `backend/app/models/user.py`**
 
 ```python
 from pydantic import BaseModel
@@ -652,7 +652,7 @@ class User(BaseModel):
     member_id: str | None = None
 ```
 
-- [ ] **Step 3: Write the failing test** — `backend/tests/test_db.py`
+- [x] **Step 3: Write the failing test** — `backend/tests/test_db.py`
 
 ```python
 import boto3
@@ -697,14 +697,14 @@ def test_get_user_by_id_returns_none_when_missing(dynamodb_users_table):
     assert get_user_by_id("does-not-exist") is None
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 ```bash
 pytest tests/test_db.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.db'`
 
-- [ ] **Step 5: Write `backend/app/db.py`**
+- [x] **Step 5: Write `backend/app/db.py`**
 
 ```python
 import boto3
@@ -753,14 +753,14 @@ def put_user(user: User) -> None:
 
 Note: `db.py` uses relative imports (`.config`, `.models.user`), not `from app...`. This is an import convention that applies to every file under `backend/app/` from here on (it does NOT apply to test files in `backend/tests/`, which keep using absolute `from app...` imports as already written, since tests run locally via pytest's `pythonpath = ["."]` rooted at `backend/`, never through Lambda). Reason: Task 4 found that Serverless Framework's packaging preserves a `backend/` prefix in the deployed zip, so Lambda imports this code as `backend.app.*`, not `app.*`. Relative imports resolve correctly under both names; absolute `from app...` imports inside `backend/app/**` would work locally but throw `ModuleNotFoundError: No module named 'app'` once deployed. Every later task that adds a file under `backend/app/` (Tasks 8 and 9 below) follows this same convention — their code blocks already reflect it.
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 pytest tests/test_db.py -v
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/config.py backend/app/db.py backend/app/models/user.py backend/tests/test_db.py
@@ -775,7 +775,7 @@ git commit -m "feat: add User model and DynamoDB repository functions"
 - Create: `backend/app/auth.py`
 - Test: `backend/tests/test_auth.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_auth.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_auth.py`
 
 ```python
 import jwt
@@ -810,14 +810,14 @@ def test_get_current_user_id_rejects_invalid_token(monkeypatch):
     assert exc_info.value.status_code == 401
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 pytest tests/test_auth.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.auth'`
 
-- [ ] **Step 3: Write `backend/app/auth.py`**
+- [x] **Step 3: Write `backend/app/auth.py`**
 
 ```python
 import jwt
@@ -865,14 +865,14 @@ def get_current_user_id(authorization: str = Header(...)) -> str:
 
 (Relative import — `.config`, not `app.config` — per the convention established in Task 7.)
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 pytest tests/test_auth.py -v
 ```
 Expected: PASS (3 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/auth.py backend/tests/test_auth.py
@@ -890,7 +890,7 @@ git commit -m "feat: add Cognito JWT verification dependency"
 - Modify: `backend/tests/test_db.py`
 - Test: `backend/tests/test_users.py`
 
-- [ ] **Step 1: Move the moto fixture into `conftest.py` so both test files can use it**
+- [x] **Step 1: Move the moto fixture into `conftest.py` so both test files can use it**
 
 Replace the full contents of `backend/tests/conftest.py` with:
 
@@ -928,7 +928,7 @@ def dynamodb_users_table(monkeypatch):
         yield
 ```
 
-- [ ] **Step 2: Remove the now-duplicated fixture from `test_db.py`**
+- [x] **Step 2: Remove the now-duplicated fixture from `test_db.py`**
 
 Replace the full contents of `backend/tests/test_db.py` with:
 
@@ -950,14 +950,14 @@ def test_get_user_by_id_returns_none_when_missing(dynamodb_users_table):
     assert get_user_by_id("does-not-exist") is None
 ```
 
-- [ ] **Step 3: Run the full suite to confirm the refactor didn't break anything**
+- [x] **Step 3: Run the full suite to confirm the refactor didn't break anything**
 
 ```bash
 pytest -v
 ```
 Expected: all previously-passing tests still PASS.
 
-- [ ] **Step 4: Write the failing test** — `backend/tests/test_users.py`
+- [x] **Step 4: Write the failing test** — `backend/tests/test_users.py`
 
 ```python
 from app.auth import get_current_user_id
@@ -992,14 +992,14 @@ def test_get_me_returns_404_when_user_record_missing(client, dynamodb_users_tabl
     assert response.status_code == 404
 ```
 
-- [ ] **Step 5: Run test to verify it fails**
+- [x] **Step 5: Run test to verify it fails**
 
 ```bash
 pytest tests/test_users.py -v
 ```
 Expected: FAIL with `404` for the first test (route doesn't exist yet, returns FastAPI's default 404) or `ModuleNotFoundError` if the router import path is wrong — either way, both tests fail before implementation.
 
-- [ ] **Step 6: Write `backend/app/routers/users.py`**
+- [x] **Step 6: Write `backend/app/routers/users.py`**
 
 ```python
 from fastapi import APIRouter, Depends, HTTPException
@@ -1021,7 +1021,7 @@ def get_me(user_id: str = Depends(get_current_user_id)) -> User:
 
 (Relative imports — `..auth`, `..db`, `..models.user` — per the convention established in Task 7: two dots since this file is in `app/routers/`, one level deeper than `auth.py`/`db.py`.)
 
-- [ ] **Step 7: Register the router** — modify `backend/app/main.py` to read:
+- [x] **Step 7: Register the router** — modify `backend/app/main.py` to read:
 
 ```python
 from fastapi import FastAPI
@@ -1033,14 +1033,14 @@ app.include_router(health.router)
 app.include_router(users.router)
 ```
 
-- [ ] **Step 8: Run test to verify it passes**
+- [x] **Step 8: Run test to verify it passes**
 
 ```bash
 pytest tests/test_users.py -v
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add backend/app/routers/users.py backend/app/main.py backend/tests/conftest.py backend/tests/test_db.py backend/tests/test_users.py
@@ -1058,11 +1058,11 @@ There's no self-registration in this system (§15 of the BRD), so the very first
 - Create: `backend/scripts/seed_admin.py`
 - Test: `backend/tests/test_seed_admin.py`
 
-- [ ] **Step 1: Create `backend/scripts/__init__.py`** (empty file)
+- [x] **Step 1: Create `backend/scripts/__init__.py`** (empty file)
 
 This makes `scripts` an explicit package. It's required for Step 7 below to work: running this script directly as `python scripts/seed_admin.py` would put `backend/scripts/` (not `backend/`) at the front of `sys.path` (Python sets `sys.path[0]` to the invoked script's own directory), so `from app.config import settings` inside it would fail with `ModuleNotFoundError: No module named 'app'`. Step 7 instead invokes it as `python -m scripts.seed_admin`, which puts the current directory (`backend/`) on `sys.path` — but `-m` requires `scripts` to be an importable package, hence this file. (Pytest doesn't hit this problem — pytest's own import mechanism plus `pythonpath = ["."]` in `pyproject.toml` already puts `backend/` on the path regardless of how the script is invoked, which is why this gap wasn't caught until Step 7.)
 
-- [ ] **Step 2: Write the failing test** — `backend/tests/test_seed_admin.py`
+- [x] **Step 2: Write the failing test** — `backend/tests/test_seed_admin.py`
 
 ```python
 import sys
@@ -1125,14 +1125,14 @@ def test_main_creates_cognito_user_and_users_table_record(
     assert items[0]["IsAdministrator"] is True
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 ```bash
 pytest tests/test_seed_admin.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'scripts.seed_admin'`
 
-- [ ] **Step 4: Write `backend/scripts/seed_admin.py`**
+- [x] **Step 4: Write `backend/scripts/seed_admin.py`**
 
 ```python
 """Creates the first board administrator: a Cognito user (with a temporary
@@ -1191,21 +1191,21 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 ```bash
 pytest tests/test_seed_admin.py -v
 ```
 Expected: PASS (3 passed)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/scripts/__init__.py backend/scripts/seed_admin.py backend/tests/test_seed_admin.py
 git commit -m "feat: add seed script for first admin user"
 ```
 
-- [ ] **Step 7: Run the script against the real deployed stack to create each board member's login**
+- [x] **Step 7: Run the script against the real deployed stack to create each board member's login**
 
 Run as a module (`-m scripts.seed_admin`), not as a script path (`scripts/seed_admin.py`) — see Step 1's note for why. Use the venv's Python explicitly, not bare `python` (this shell's `python`/`pip` aliases bypass the venv — see Task 1's report). Run once per board member, with their real email and a temporary password you choose (meets the pool's policy: min 10 chars, upper+lower+number; symbols optional) — share the temporary password with them out-of-band; they'll be forced to set their own permanent password on first login (Task 12/15), so this temporary value is never their real password.
 
@@ -1236,7 +1236,7 @@ Config files are hand-written rather than generated via `npm create vite` so eve
 - Create: `frontend/src/main.tsx`
 - Test: `frontend/src/App.test.tsx`
 
-- [ ] **Step 1: Write `frontend/package.json`**
+- [x] **Step 1: Write `frontend/package.json`**
 
 ```json
 {
@@ -1269,14 +1269,14 @@ Config files are hand-written rather than generated via `npm create vite` so eve
 }
 ```
 
-- [ ] **Step 2: Install dependencies**
+- [x] **Step 2: Install dependencies**
 
 ```bash
 cd frontend && npm install && cd ..
 ```
 Expected: installs with no errors, creates `frontend/node_modules/` and `frontend/package-lock.json`.
 
-- [ ] **Step 3: Write `frontend/vite.config.ts`**
+- [x] **Step 3: Write `frontend/vite.config.ts`**
 
 ```ts
 import { defineConfig } from 'vite'
@@ -1292,7 +1292,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 4: Write `frontend/tsconfig.json`**
+- [x] **Step 4: Write `frontend/tsconfig.json`**
 
 ```json
 {
@@ -1314,7 +1314,7 @@ export default defineConfig({
 }
 ```
 
-- [ ] **Step 5: Write `frontend/index.html`**
+- [x] **Step 5: Write `frontend/index.html`**
 
 ```html
 <!doctype html>
@@ -1330,13 +1330,13 @@ export default defineConfig({
 </html>
 ```
 
-- [ ] **Step 6: Write `frontend/src/setupTests.ts`**
+- [x] **Step 6: Write `frontend/src/setupTests.ts`**
 
 ```ts
 import '@testing-library/jest-dom/vitest'
 ```
 
-- [ ] **Step 7: Write the failing test** — `frontend/src/App.test.tsx`
+- [x] **Step 7: Write the failing test** — `frontend/src/App.test.tsx`
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -1351,14 +1351,14 @@ describe('App', () => {
 })
 ```
 
-- [ ] **Step 8: Run test to verify it fails**
+- [x] **Step 8: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run
 ```
 Expected: FAIL — `Failed to resolve import "./App"`
 
-- [ ] **Step 9: Write `frontend/src/App.tsx`**
+- [x] **Step 9: Write `frontend/src/App.tsx`**
 
 ```tsx
 function App() {
@@ -1368,7 +1368,7 @@ function App() {
 export default App
 ```
 
-- [ ] **Step 10: Write `frontend/src/main.tsx`**
+- [x] **Step 10: Write `frontend/src/main.tsx`**
 
 ```tsx
 import React from 'react'
@@ -1382,14 +1382,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 )
 ```
 
-- [ ] **Step 11: Run test to verify it passes**
+- [x] **Step 11: Run test to verify it passes**
 
 ```bash
 npx vitest run
 ```
 Expected: PASS (1 passed)
 
-- [ ] **Step 12: Verify the dev server boots**
+- [x] **Step 12: Verify the dev server boots**
 
 ```bash
 npx vite --port 5173 &
@@ -1400,7 +1400,7 @@ cd ..
 ```
 Expected: prints `<title>Boombayan LMS</title>`
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add frontend/package.json frontend/package-lock.json frontend/vite.config.ts frontend/tsconfig.json frontend/index.html frontend/src/setupTests.ts frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/main.tsx
@@ -1417,7 +1417,7 @@ git commit -m "chore: scaffold Vite + React + TypeScript frontend"
 - Create: `frontend/src/auth/cognito.ts`
 - Test: `frontend/src/auth/cognito.test.ts`
 
-- [ ] **Step 1: Write `frontend/src/vite-env.d.ts`**
+- [x] **Step 1: Write `frontend/src/vite-env.d.ts`**
 
 ```ts
 /// <reference types="vite/client" />
@@ -1432,7 +1432,7 @@ interface ImportMeta {
 }
 ```
 
-- [ ] **Step 2: Write `frontend/.env.local.example`**
+- [x] **Step 2: Write `frontend/.env.local.example`**
 
 ```
 VITE_COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
@@ -1441,7 +1441,7 @@ VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
 
 Copy this to `frontend/.env.local` (already gitignored) and fill in the real `UserPoolId`/`UserPoolClientId` values from Task 6's deploy output.
 
-- [ ] **Step 3: Write the failing test** — `frontend/src/auth/cognito.test.ts`
+- [x] **Step 3: Write the failing test** — `frontend/src/auth/cognito.test.ts`
 
 `login()` returns a discriminated-union result rather than bare tokens, because Cognito can respond to a login attempt in two genuinely different ways: a normal success, or — for an account still on its admin-issued temporary password (Task 10) — a `NEW_PASSWORD_REQUIRED` challenge that must be completed before any tokens exist. Callers (Task 15's `LoginPage`) branch on `result.status`.
 
@@ -1521,14 +1521,14 @@ describe('login', () => {
 })
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/auth/cognito.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./cognito"`
 
-- [ ] **Step 5: Write `frontend/src/auth/cognito.ts`**
+- [x] **Step 5: Write `frontend/src/auth/cognito.ts`**
 
 ```ts
 import {
@@ -1591,14 +1591,14 @@ export function login(email: string, password: string): Promise<LoginResult> {
 }
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 npx vitest run src/auth/cognito.test.ts
 ```
 Expected: PASS (3 passed)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ..
@@ -1614,7 +1614,7 @@ git commit -m "feat: add Cognito login client"
 - Create: `frontend/src/auth/AuthContext.tsx`
 - Test: `frontend/src/auth/AuthContext.test.tsx`
 
-- [ ] **Step 1: Write the failing test** — `frontend/src/auth/AuthContext.test.tsx`
+- [x] **Step 1: Write the failing test** — `frontend/src/auth/AuthContext.test.tsx`
 
 `login()` here mirrors `cognito.ts`'s `LoginResult` shape: it sets `idToken` immediately on a `success` result, but for `newPasswordRequired` it does NOT set anything — there are no tokens yet, only a challenge to complete. `setTokens()` is the method `LoginPage` (Task 15) calls once that challenge is completed.
 
@@ -1715,14 +1715,14 @@ describe('AuthProvider', () => {
 
 `loginResult` is explicitly typed `LoginResult | undefined` rather than left for inference: it's declared outside the `act(async () => {...})` closure and only assigned inside it, which makes TypeScript infer `never` for it at the `loginResult?.status` usage site under `strict` mode — `vitest run` doesn't type-check so this wouldn't fail Step 4 below, but `npm run build` (`tsc -b`) would.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/auth/AuthContext.test.tsx
 ```
 Expected: FAIL — `Failed to resolve import "./AuthContext"`
 
-- [ ] **Step 3: Write `frontend/src/auth/AuthContext.tsx`**
+- [x] **Step 3: Write `frontend/src/auth/AuthContext.tsx`**
 
 ```tsx
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
@@ -1784,14 +1784,14 @@ export function useAuth(): AuthContextValue {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npx vitest run src/auth/AuthContext.test.tsx
 ```
 Expected: PASS (5 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ..
@@ -1807,7 +1807,7 @@ git commit -m "feat: add AuthContext for session state"
 - Create: `frontend/src/components/ProtectedRoute.tsx`
 - Test: `frontend/src/components/ProtectedRoute.test.tsx`
 
-- [ ] **Step 1: Write the failing test** — `frontend/src/components/ProtectedRoute.test.tsx`
+- [x] **Step 1: Write the failing test** — `frontend/src/components/ProtectedRoute.test.tsx`
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -1858,14 +1858,14 @@ describe('ProtectedRoute', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/components/ProtectedRoute.test.tsx
 ```
 Expected: FAIL — `Failed to resolve import "./ProtectedRoute"`
 
-- [ ] **Step 3: Write `frontend/src/components/ProtectedRoute.tsx`**
+- [x] **Step 3: Write `frontend/src/components/ProtectedRoute.tsx`**
 
 ```tsx
 import { Navigate, Outlet } from 'react-router-dom'
@@ -1880,14 +1880,14 @@ export function ProtectedRoute() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npx vitest run src/components/ProtectedRoute.test.tsx
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ..
@@ -1903,7 +1903,7 @@ git commit -m "feat: add ProtectedRoute guard"
 - Create: `frontend/src/pages/LoginPage.tsx`
 - Test: `frontend/src/pages/LoginPage.test.tsx`
 
-- [ ] **Step 1: Write the failing test** — `frontend/src/pages/LoginPage.test.tsx`
+- [x] **Step 1: Write the failing test** — `frontend/src/pages/LoginPage.test.tsx`
 
 Board members are seeded (Task 10) with a temporary password, so the first real login for each of them returns `newPasswordRequired`, not `success` — this page needs to handle that as the *normal*, expected first-login path, not an edge case.
 
@@ -2013,14 +2013,14 @@ describe('LoginPage', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/pages/LoginPage.test.tsx
 ```
 Expected: FAIL — `Failed to resolve import "./LoginPage"`
 
-- [ ] **Step 3: Write `frontend/src/pages/LoginPage.tsx`**
+- [x] **Step 3: Write `frontend/src/pages/LoginPage.tsx`**
 
 ```tsx
 import { FormEvent, useState } from 'react'
@@ -2111,14 +2111,14 @@ export function LoginPage() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npx vitest run src/pages/LoginPage.test.tsx
 ```
 Expected: PASS (4 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ..
@@ -2136,7 +2136,7 @@ git commit -m "feat: add LoginPage"
 - Create: `frontend/src/api/client.ts`
 - Test: `frontend/src/api/client.test.ts`
 
-- [ ] **Step 1: Add `VITE_API_BASE_URL` to the env types** — modify `frontend/src/vite-env.d.ts` to read:
+- [x] **Step 1: Add `VITE_API_BASE_URL` to the env types** — modify `frontend/src/vite-env.d.ts` to read:
 
 ```ts
 /// <reference types="vite/client" />
@@ -2152,7 +2152,7 @@ interface ImportMeta {
 }
 ```
 
-- [ ] **Step 2: Add it to the example env file** — append to `frontend/.env.local.example`:
+- [x] **Step 2: Add it to the example env file** — append to `frontend/.env.local.example`:
 
 ```
 VITE_API_BASE_URL=https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com
@@ -2160,7 +2160,7 @@ VITE_API_BASE_URL=https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com
 
 Fill in the real API Gateway URL from Task 4's deploy output (no trailing slash).
 
-- [ ] **Step 3: Write the failing test** — `frontend/src/api/client.test.ts`
+- [x] **Step 3: Write the failing test** — `frontend/src/api/client.test.ts`
 
 ```ts
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -2198,14 +2198,14 @@ describe('apiFetch', () => {
 })
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/api/client.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./client"`
 
-- [ ] **Step 5: Write `frontend/src/api/client.ts`**
+- [x] **Step 5: Write `frontend/src/api/client.ts`**
 
 ```ts
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -2223,14 +2223,14 @@ export async function apiFetch<T>(path: string, idToken: string): Promise<T> {
 }
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 npx vitest run src/api/client.test.ts
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ..
@@ -2248,7 +2248,7 @@ git commit -m "feat: add API client with bearer token attachment"
 - Modify: `frontend/src/App.tsx`
 - Modify: `frontend/src/App.test.tsx`
 
-- [ ] **Step 1: Write the failing test** — `frontend/src/pages/DashboardPage.test.tsx`
+- [x] **Step 1: Write the failing test** — `frontend/src/pages/DashboardPage.test.tsx`
 
 ```tsx
 import { render, screen, waitFor } from '@testing-library/react'
@@ -2293,14 +2293,14 @@ describe('DashboardPage', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/pages/DashboardPage.test.tsx
 ```
 Expected: FAIL — `Failed to resolve import "./DashboardPage"`
 
-- [ ] **Step 3: Write `frontend/src/pages/DashboardPage.tsx`**
+- [x] **Step 3: Write `frontend/src/pages/DashboardPage.tsx`**
 
 ```tsx
 import { useEffect, useState } from 'react'
@@ -2344,14 +2344,14 @@ export function DashboardPage() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npx vitest run src/pages/DashboardPage.test.tsx
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 5: Wire up routing** — replace `frontend/src/App.tsx`:
+- [x] **Step 5: Wire up routing** — replace `frontend/src/App.tsx`:
 
 ```tsx
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
@@ -2379,7 +2379,7 @@ function App() {
 export default App
 ```
 
-- [ ] **Step 6: Update the now-outdated App test** — replace `frontend/src/App.test.tsx` (the Task 11 placeholder test asserted on static text; now App does real routing, so this asserts the actual intended behavior: an unauthenticated visitor lands on the login page):
+- [x] **Step 6: Update the now-outdated App test** — replace `frontend/src/App.test.tsx` (the Task 11 placeholder test asserted on static text; now App does real routing, so this asserts the actual intended behavior: an unauthenticated visitor lands on the login page):
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -2394,14 +2394,14 @@ describe('App', () => {
 })
 ```
 
-- [ ] **Step 7: Run the full frontend suite**
+- [x] **Step 7: Run the full frontend suite**
 
 ```bash
 npx vitest run
 ```
 Expected: all tests PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd ..
@@ -2478,7 +2478,7 @@ No commit for this task — it's verification of work already committed in Tasks
 **Files:**
 - Create: `README.md`
 
-- [ ] **Step 1: Write `README.md`**
+- [x] **Step 1: Write `README.md`**
 
 ```markdown
 # Boombayan Lending Management System
@@ -2550,7 +2550,7 @@ cd frontend && npm run test
 \`\`\`
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add README.md
