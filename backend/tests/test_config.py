@@ -35,11 +35,11 @@ def test_update_config_partial_update_preserves_other_field(
     put_user(admin)
     app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
 
-    client.put("/config", json={"share_value": 500, "max_shares_per_member": 5})
+    client.put("/config", json={"share_value": 500, "max_shares_per_member": 10})
     response = client.put("/config", json={"share_value": 600})
 
     assert response.status_code == 200
-    assert response.json() == {"share_value": 600, "max_shares_per_member": 5}
+    assert response.json() == {"share_value": 600, "max_shares_per_member": 10}
 
 
 def test_update_config_rejected_for_non_administrator(client, dynamodb_users_table, dynamodb_config_table):
