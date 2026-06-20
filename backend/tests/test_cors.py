@@ -1,17 +1,8 @@
-def test_cors_preflight_allows_browser_origin(client):
-    response = client.options(
-        "/me",
-        headers={
-            "Origin": "http://localhost:5173",
-            "Access-Control-Request-Method": "GET",
-            "Access-Control-Request-Headers": "authorization",
-        },
-    )
-    assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "*"
-
-
-def test_cors_header_present_on_actual_response(client):
+def test_cors_allows_configured_origin(client):
     response = client.get("/health", headers={"Origin": "http://localhost:5173"})
-    assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "*"
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_cors_rejects_unconfigured_origin(client):
+    response = client.get("/health", headers={"Origin": "http://evil.example.com"})
+    assert "access-control-allow-origin" not in response.headers

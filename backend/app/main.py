@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .config import settings
 from .routers import health, users
 
 app = FastAPI(title="Boombayan LMS API")
@@ -9,10 +10,14 @@ app = FastAPI(title="Boombayan LMS API")
 # per infra/serverless.yml's `httpApi: '*'`) - the preflight just falls
 # through to the Lambda, which returned 405 with no CORSMiddleware. Handling
 # CORS here instead works regardless of routing and needs no serverless.yml
-# changes as new routes are added.
+# changes as new routes are added. allow_origins is an explicit allowlist
+# (CORS_ALLOWED_ORIGINS, comma-separated) rather than "*": every endpoint
+# requires a valid bearer token regardless of origin today, but an explicit
+# allowlist is one less thing to reason about once any cookie-based or
+# unauthenticated endpoint is ever added.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_allowed_origins.split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )

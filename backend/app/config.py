@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     cognito_user_pool_id: str = ""
     cognito_client_id: str = ""
     aws_region: str = "us-east-1"
+    cors_allowed_origins: str = "http://localhost:5173"
 
 
 settings = Settings()
