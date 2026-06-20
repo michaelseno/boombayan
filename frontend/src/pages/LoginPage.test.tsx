@@ -100,4 +100,31 @@ describe('LoginPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not set new password. Please try again.')
   })
+
+  it('shows a password-policy-specific error when the new password violates Cognito\'s policy', async () => {
+    const policyError = Object.assign(new Error('Password did not conform with policy'), {
+      code: 'InvalidPasswordException',
+    })
+    const completeNewPassword = vi.fn().mockRejectedValue(policyError)
+    const login = vi.fn().mockResolvedValue({ status: 'newPasswordRequired', completeNewPassword })
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens: vi.fn(), logout: vi.fn() })
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'board@boombayan.org' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'temp-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    await screen.findByLabelText('New password')
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'weak' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Set password' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Password must be at least 10 characters and include uppercase, lowercase, and a number.',
+    )
+  })
 })

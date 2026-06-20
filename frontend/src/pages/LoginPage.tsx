@@ -22,6 +22,7 @@ export function LoginPage() {
       const result = await login(email, password)
       if (result.status === 'newPasswordRequired') {
         setCompleteNewPassword(() => result.completeNewPassword)
+        setPassword('')
       } else {
         navigate('/dashboard')
       }
@@ -37,8 +38,14 @@ export function LoginPage() {
       const tokens = await completeNewPassword!(newPassword)
       setTokens(tokens)
       navigate('/dashboard')
-    } catch {
-      setNewPasswordError('Could not set new password. Please try again.')
+    } catch (err) {
+      if (err instanceof Error && 'code' in err && err.code === 'InvalidPasswordException') {
+        setNewPasswordError(
+          'Password must be at least 10 characters and include uppercase, lowercase, and a number.',
+        )
+      } else {
+        setNewPasswordError('Could not set new password. Please try again.')
+      }
     }
   }
 
@@ -46,10 +53,12 @@ export function LoginPage() {
     return (
       <form onSubmit={handleNewPasswordSubmit}>
         <h1>Set a new password</h1>
+        <p>Your account requires a new password before you can continue.</p>
         <label htmlFor="new-password">New password</label>
         <input
           id="new-password"
           type="password"
+          autoComplete="new-password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           required
@@ -67,6 +76,7 @@ export function LoginPage() {
       <input
         id="email"
         type="email"
+        autoComplete="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -75,6 +85,7 @@ export function LoginPage() {
       <input
         id="password"
         type="password"
+        autoComplete="current-password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
