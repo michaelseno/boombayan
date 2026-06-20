@@ -53,3 +53,57 @@ def test_create_member_rejected_for_non_administrator(client, dynamodb_users_tab
     )
 
     assert response.status_code == 403
+
+
+def test_list_members_returns_all_members_for_any_authenticated_user(
+    client, dynamodb_users_table, dynamodb_members_table
+):
+    from app.db import put_member
+    from app.models.member import Member
+
+    put_member(
+        Member(
+            member_id="mem-1", first_name="Ana", last_name="Reyes",
+            email="ana@example.com", phone="1", date_joined="2026-01-15",
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/members")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+
+def test_get_member_returns_member_for_any_authenticated_user(
+    client, dynamodb_users_table, dynamodb_members_table
+):
+    from app.db import put_member
+    from app.models.member import Member
+
+    put_member(
+        Member(
+            member_id="mem-1", first_name="Ana", last_name="Reyes",
+            email="ana@example.com", phone="1", date_joined="2026-01-15",
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/members/mem-1")
+
+    assert response.status_code == 200
+    assert response.json()["first_name"] == "Ana"
+
+
+def test_get_member_returns_404_when_missing(client, dynamodb_users_table, dynamodb_members_table):
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/members/does-not-exist")
+
+    assert response.status_code == 404
