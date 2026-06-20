@@ -11,6 +11,7 @@ export function MemberDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [sharesToPurchase, setSharesToPurchase] = useState('')
   const [purchaseError, setPurchaseError] = useState<string | null>(null)
+  const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false)
 
   useEffect(() => {
     if (!idToken || !memberId) return
@@ -31,6 +32,7 @@ export function MemberDetailPage() {
     event.preventDefault()
     if (!idToken || !memberId) return
     setPurchaseError(null)
+    setIsSubmittingPurchase(true)
     try {
       const updated = await apiFetch<Member>(`/members/${memberId}/shares`, idToken, {
         method: 'POST',
@@ -40,6 +42,8 @@ export function MemberDetailPage() {
       setSharesToPurchase('')
     } catch {
       setPurchaseError('Could not record the share purchase.')
+    } finally {
+      setIsSubmittingPurchase(false)
     }
   }
 
@@ -90,9 +94,10 @@ export function MemberDetailPage() {
           value={sharesToPurchase}
           onChange={(e) => setSharesToPurchase(e.target.value)}
           required
+          disabled={isSubmittingPurchase}
         />
         {purchaseError && <p role="alert">{purchaseError}</p>}
-        <button type="submit">Purchase</button>
+        <button type="submit" disabled={isSubmittingPurchase}>Purchase</button>
       </form>
     </div>
   )

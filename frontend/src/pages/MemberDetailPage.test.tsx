@@ -101,6 +101,53 @@ describe('MemberDetailPage', () => {
     await waitFor(() => expect(screen.getByText('2026-02-01')).toBeInTheDocument())
   })
 
+  it('disables the Purchase button while a share purchase is in flight', async () => {
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      member_id: 'mem-1',
+      first_name: 'Ana',
+      last_name: 'Reyes',
+      email: 'ana@example.com',
+      phone: '1',
+      date_joined: '2026-01-15',
+      status: 'Active',
+      current_shares: 0,
+      current_capital_amount: 0,
+      share_history: [],
+    })
+
+    renderAtMember('mem-1')
+    await waitFor(() => expect(screen.getByText('Ana Reyes')).toBeInTheDocument())
+
+    let resolvePurchase: (value: unknown) => void = () => {}
+    const purchasePromise = new Promise((resolve) => {
+      resolvePurchase = resolve
+    })
+    vi.mocked(apiFetch).mockReturnValueOnce(purchasePromise as ReturnType<typeof apiFetch>)
+
+    fireEvent.change(screen.getByLabelText('Shares to purchase'), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Purchase' }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Purchase' })).toBeDisabled())
+
+    resolvePurchase({
+      member_id: 'mem-1',
+      first_name: 'Ana',
+      last_name: 'Reyes',
+      email: 'ana@example.com',
+      phone: '1',
+      date_joined: '2026-01-15',
+      status: 'Active',
+      current_shares: 2,
+      current_capital_amount: 1000,
+      share_history: [
+        { cycle_id: null, shares_purchased: 2, share_value_at_purchase: 500, amount_paid: 1000, date: '2026-02-01' },
+      ],
+    })
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Purchase' })).not.toBeDisabled())
+  })
+
   it('shows an error message when the share purchase fails', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
     vi.mocked(apiFetch).mockResolvedValueOnce({
