@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { apiFetch } from '../api/client'
 import { Member } from '../api/types'
@@ -9,6 +9,8 @@ export function MemberDetailPage() {
   const { idToken } = useAuth()
   const [member, setMember] = useState<Member | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sharesToPurchase, setSharesToPurchase] = useState('')
+  const [purchaseError, setPurchaseError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!idToken || !memberId) return
@@ -24,6 +26,22 @@ export function MemberDetailPage() {
       cancelled = true
     }
   }, [idToken, memberId])
+
+  async function handlePurchase(event: FormEvent) {
+    event.preventDefault()
+    if (!idToken || !memberId) return
+    setPurchaseError(null)
+    try {
+      const updated = await apiFetch<Member>(`/members/${memberId}/shares`, idToken, {
+        method: 'POST',
+        body: { shares_purchased: Number(sharesToPurchase) },
+      })
+      setMember(updated)
+      setSharesToPurchase('')
+    } catch {
+      setPurchaseError('Could not record the share purchase.')
+    }
+  }
 
   if (error) {
     return <p role="alert">{error}</p>
@@ -62,6 +80,20 @@ export function MemberDetailPage() {
           ))}
         </tbody>
       </table>
+      <h2>Purchase shares</h2>
+      <form onSubmit={handlePurchase}>
+        <label htmlFor="shares-purchased">Shares to purchase</label>
+        <input
+          id="shares-purchased"
+          type="number"
+          min="1"
+          value={sharesToPurchase}
+          onChange={(e) => setSharesToPurchase(e.target.value)}
+          required
+        />
+        {purchaseError && <p role="alert">{purchaseError}</p>}
+        <button type="submit">Purchase</button>
+      </form>
     </div>
   )
 }

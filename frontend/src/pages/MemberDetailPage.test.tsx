@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { apiFetch } from '../api/client'
@@ -54,5 +54,76 @@ describe('MemberDetailPage', () => {
     renderAtMember('mem-1')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this member.')
+  })
+
+  it('submits a share purchase and updates the displayed totals', async () => {
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      member_id: 'mem-1',
+      first_name: 'Ana',
+      last_name: 'Reyes',
+      email: 'ana@example.com',
+      phone: '1',
+      date_joined: '2026-01-15',
+      status: 'Active',
+      current_shares: 0,
+      current_capital_amount: 0,
+      share_history: [],
+    })
+
+    renderAtMember('mem-1')
+    await waitFor(() => expect(screen.getByText('Ana Reyes')).toBeInTheDocument())
+
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      member_id: 'mem-1',
+      first_name: 'Ana',
+      last_name: 'Reyes',
+      email: 'ana@example.com',
+      phone: '1',
+      date_joined: '2026-01-15',
+      status: 'Active',
+      current_shares: 2,
+      current_capital_amount: 1000,
+      share_history: [
+        { cycle_id: null, shares_purchased: 2, share_value_at_purchase: 500, amount_paid: 1000, date: '2026-02-01' },
+      ],
+    })
+
+    fireEvent.change(screen.getByLabelText('Shares to purchase'), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Purchase' }))
+
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith('/members/mem-1/shares', 'fake-id-token', {
+        method: 'POST',
+        body: { shares_purchased: 2 },
+      }),
+    )
+    await waitFor(() => expect(screen.getByText('2026-02-01')).toBeInTheDocument())
+  })
+
+  it('shows an error message when the share purchase fails', async () => {
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(apiFetch).mockResolvedValueOnce({
+      member_id: 'mem-1',
+      first_name: 'Ana',
+      last_name: 'Reyes',
+      email: 'ana@example.com',
+      phone: '1',
+      date_joined: '2026-01-15',
+      status: 'Active',
+      current_shares: 0,
+      current_capital_amount: 0,
+      share_history: [],
+    })
+
+    renderAtMember('mem-1')
+    await waitFor(() => expect(screen.getByText('Ana Reyes')).toBeInTheDocument())
+
+    vi.mocked(apiFetch).mockRejectedValueOnce(new Error('boom'))
+
+    fireEvent.change(screen.getByLabelText('Shares to purchase'), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Purchase' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not record the share purchase.')
   })
 })
