@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import health, users
+from .routers import health, members, users
 
 
 def _parse_allowed_origins(value: str) -> list[str]:
@@ -31,3 +31,4 @@ app.add_middleware(
 )
 app.include_router(health.router)
 app.include_router(users.router)
+app.include_router(members.router)
