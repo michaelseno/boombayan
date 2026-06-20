@@ -1,0 +1,127 @@
+service: boombayan-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  environment:
+    USERS_TABLE: ${self:service}-${sls:stage}-users
+    CONFIG_TABLE: ${self:service}-${sls:stage}-config
+    COGNITO_USER_POOL_ID: !Ref CognitoUserPool
+    COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - !GetAtt UsersTable.Arn
+            - !GetAtt ConfigTable.Arn
+
+# Patterns preserve the `backend/` prefix in the zip (Serverless's `../` traversal
+# doesn't rebase paths), so the handler below is backend.app.handler.handler, not
+# app.handler.handler. Any new file added under backend/app/ is auto-included by
+# the second pattern; anything added under backend/ but outside backend/app/ that
+# needs to ship in the Lambda package needs its own explicit pattern entry here.
+package:
+  patterns:
+    - '!**'
+    - '../backend/app/**'
+    - '../backend/__init__.py'
+
+custom:
+  pythonRequirements:
+    fileName: ../backend/requirements.txt
+    # true: pydantic-core (and other native deps) must be built as Linux wheels
+    # via Docker — building on macOS produces darwin .so files Lambda can't load.
+    dockerizePip: true
+
+plugins:
+  - serverless-python-requirements
+
+functions:
+  api:
+    handler: backend.app.handler.handler
+    events:
+      - httpApi: '*'
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USERS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: UserId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: UserId
+            KeyType: HASH
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+
+    ConfigTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.CONFIG_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: ConfigKey
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ConfigKey
+            KeyType: HASH
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:service}-${sls:stage}-users
+        # Prevents accidental `serverless remove`/stack rollback from wiping
+        # the only store of board members' login credentials.
+        DeletionProtection: ACTIVE
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 10
+            RequireUppercase: true
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: false
+
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:service}-${sls:stage}-web
+        UserPoolId: !Ref CognitoUserPool
+        # ALLOW_USER_SRP_AUTH, not ALLOW_USER_PASSWORD_AUTH: the frontend's
+        # amazon-cognito-identity-js CognitoUser.authenticateUser() always
+        # performs SRP internally (it has no plain-password mode) - found
+        # during Task 18's real login test, which failed with
+        # InvalidParameterException: "USER_SRP_AUTH is not enabled for the
+        # client" until this was corrected. SRP is also strictly more
+        # secure (password never transmitted), so this isn't a downgrade.
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        GenerateSecret: false
+
+  Outputs:
+    UserPoolId:
+      Value: !Ref CognitoUserPool
+    UserPoolClientId:
+      Value: !Ref CognitoUserPoolClient

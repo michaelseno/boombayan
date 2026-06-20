@@ -85,7 +85,7 @@ boombayan_project/
 - Create: `backend/requirements-dev.txt`
 - Create: `backend/app/__init__.py`
 
-- [ ] **Step 1: Create directory structure**
+- [x] **Step 1: Create directory structure**
 
 ```bash
 mkdir -p backend/app/models backend/app/routers backend/tests backend/scripts
@@ -93,7 +93,7 @@ touch backend/app/__init__.py backend/app/models/__init__.py backend/app/routers
 touch backend/tests/__init__.py
 ```
 
-- [ ] **Step 2: Write `.gitignore`**
+- [x] **Step 2: Write `.gitignore`**
 
 ```
 # Python
@@ -119,7 +119,7 @@ dist/
 .DS_Store
 ```
 
-- [ ] **Step 3: Write `backend/pyproject.toml`**
+- [x] **Step 3: Write `backend/pyproject.toml`**
 
 ```toml
 [tool.pytest.ini_options]
@@ -127,7 +127,7 @@ pythonpath = ["."]
 testpaths = ["tests"]
 ```
 
-- [ ] **Step 4: Write `backend/requirements.txt`**
+- [x] **Step 4: Write `backend/requirements.txt`**
 
 ```
 fastapi==0.115.0
@@ -138,7 +138,7 @@ pydantic==2.9.2
 pydantic-settings==2.5.2
 ```
 
-- [ ] **Step 5: Write `backend/requirements-dev.txt`**
+- [x] **Step 5: Write `backend/requirements-dev.txt`**
 
 ```
 -r requirements.txt
@@ -147,7 +147,7 @@ httpx==0.27.2
 moto[dynamodb,cognitoidp]==5.0.16
 ```
 
-- [ ] **Step 6: Create venv and install**
+- [x] **Step 6: Create venv and install**
 
 ```bash
 cd backend
@@ -159,7 +159,7 @@ cd ..
 
 Expected: install completes with no errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add .gitignore backend/pyproject.toml backend/requirements.txt backend/requirements-dev.txt backend/app/__init__.py backend/app/models/__init__.py backend/app/routers/__init__.py backend/tests/__init__.py
@@ -176,7 +176,7 @@ git commit -m "chore: scaffold backend Python project"
 - Create: `backend/tests/conftest.py`
 - Test: `backend/tests/test_health.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_health.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_health.py`
 
 ```python
 def test_health_returns_ok(client):
@@ -185,7 +185,7 @@ def test_health_returns_ok(client):
     assert response.json() == {"status": "ok"}
 ```
 
-- [ ] **Step 2: Write the test fixture** — `backend/tests/conftest.py`
+- [x] **Step 2: Write the test fixture** — `backend/tests/conftest.py`
 
 ```python
 import pytest
@@ -199,14 +199,14 @@ def client():
     return TestClient(app)
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 ```bash
 cd backend && source .venv/bin/activate && pytest tests/test_health.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.main'`
 
-- [ ] **Step 4: Write `backend/app/routers/health.py`**
+- [x] **Step 4: Write `backend/app/routers/health.py`**
 
 ```python
 from fastapi import APIRouter
@@ -219,7 +219,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 ```
 
-- [ ] **Step 5: Write `backend/app/main.py`**
+- [x] **Step 5: Write `backend/app/main.py`**
 
 ```python
 from fastapi import FastAPI
@@ -230,14 +230,14 @@ app = FastAPI(title="Boombayan LMS API")
 app.include_router(health.router)
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 pytest tests/test_health.py -v
 ```
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/main.py backend/app/routers/health.py backend/tests/conftest.py backend/tests/test_health.py
@@ -252,9 +252,12 @@ git commit -m "feat: add health check endpoint"
 - Create: `backend/app/handler.py`
 - Test: `backend/tests/test_handler.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_handler.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_handler.py`
 
 ```python
+import json
+
+
 def test_handler_invokes_health_route():
     from app.handler import handler
 
@@ -265,23 +268,26 @@ def test_handler_invokes_health_route():
         "rawQueryString": "",
         "headers": {},
         "requestContext": {
-            "http": {"method": "GET", "path": "/health"},
+            # sourceIp is required: Mangum 0.17.0's HTTPGateway.scope does a
+            # direct dict index on requestContext.http.sourceIp for v2.0
+            # events (no .get() fallback) — omitting it raises KeyError.
+            "http": {"method": "GET", "path": "/health", "sourceIp": "127.0.0.1"},
         },
         "isBase64Encoded": False,
     }
     response = handler(event, None)
     assert response["statusCode"] == 200
-    assert "ok" in response["body"]
+    assert json.loads(response["body"]) == {"status": "ok"}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 pytest tests/test_handler.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.handler'`
 
-- [ ] **Step 3: Write `backend/app/handler.py`**
+- [x] **Step 3: Write `backend/app/handler.py`**
 
 ```python
 from mangum import Mangum
@@ -291,14 +297,14 @@ from app.main import app
 handler = Mangum(app)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 pytest tests/test_handler.py -v
 ```
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/handler.py backend/tests/test_handler.py
@@ -313,7 +319,7 @@ git commit -m "feat: add Mangum Lambda handler"
 - Create: `infra/package.json`
 - Create: `infra/serverless.yml`
 
-- [ ] **Step 1: Write `infra/package.json`**
+- [x] **Step 1: Write `infra/package.json`**
 
 ```json
 {
@@ -327,14 +333,14 @@ git commit -m "feat: add Mangum Lambda handler"
 }
 ```
 
-- [ ] **Step 2: Install infra dependencies**
+- [x] **Step 2: Install infra dependencies**
 
 ```bash
 cd infra && npm install && cd ..
 ```
 Expected: installs with no errors, creates `infra/node_modules/` and `infra/package-lock.json`.
 
-- [ ] **Step 3: Write `infra/serverless.yml`**
+- [x] **Step 3: Write `infra/serverless.yml`**
 
 ```yaml
 service: boombayan-api
@@ -351,37 +357,40 @@ package:
   patterns:
     - '!**'
     - '../backend/app/**'
+    - '../backend/__init__.py'
 
 custom:
   pythonRequirements:
     fileName: ../backend/requirements.txt
-    dockerizePip: false
+    dockerizePip: true
 
 plugins:
   - serverless-python-requirements
 
 functions:
   api:
-    handler: app.handler.handler
+    handler: backend.app.handler.handler
     events:
       - httpApi: '*'
 ```
 
-- [ ] **Step 4: Configure AWS credentials (if not already done)**
+Note: the handler path is `backend.app.handler.handler`, not `app.handler.handler`. Serverless Framework's `../` traversal patterns preserve the `backend/` path segment when copying files into the zip rather than flattening it, so the deployed code lands at `backend/app/...` inside the zip, not `app/...` at the zip root. The handler path (and the Python module path Lambda imports) must match that on-disk layout. This requires `backend/__init__.py` to exist (added in Task 4's actual commit) so `backend` is an explicit package, and `backend/app/handler.py`/`backend/app/main.py` use relative imports (`.main`, `.routers`) rather than `from app...` so the same module tree resolves under both `backend.app.*` (Lambda) and `app.*` (local pytest, via `pythonpath = ["."]` rooted at `backend/`). Separately, `dockerizePip` must be `true` (not `false`) because `pydantic` depends on the native `pydantic-core` extension; building it on a non-Linux host (e.g. macOS) produces a `darwin` `.so` that Lambda's Linux runtime cannot load, raising `No module named 'pydantic_core._pydantic_core'` at import time.
+
+- [x] **Step 4: Configure AWS credentials (if not already done)**
 
 ```bash
 aws sts get-caller-identity
 ```
 Expected: returns your AWS account ID, user/role ARN. If this fails, run `aws configure` with credentials for an AWS account you control before continuing — every later step in this plan deploys real resources to that account.
 
-- [ ] **Step 5: Deploy**
+- [x] **Step 5: Deploy**
 
 ```bash
 cd infra && npx serverless deploy && cd ..
 ```
 Expected: output ends with an `endpoints:` section showing something like `ANY - https://<id>.execute-api.us-east-1.amazonaws.com/{proxy+}`.
 
-- [ ] **Step 6: Verify the deployed health endpoint**
+- [x] **Step 6: Verify the deployed health endpoint**
 
 ```bash
 curl https://<id>.execute-api.us-east-1.amazonaws.com/health
@@ -389,12 +398,13 @@ curl https://<id>.execute-api.us-east-1.amazonaws.com/health
 (substitute the actual URL host from the deploy output, path `/health`)
 Expected: `{"status":"ok"}`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
-git add infra/package.json infra/package-lock.json infra/serverless.yml
+git add infra/package.json infra/package-lock.json infra/serverless.yml backend/__init__.py backend/app/handler.py backend/app/main.py
 git commit -m "chore: deploy FastAPI health endpoint via Serverless Framework"
 ```
+(`backend/__init__.py` is new, and `backend/app/handler.py`/`backend/app/main.py` change `from app...` imports to relative imports — both required for the `backend.app.handler.handler` path above to actually import correctly under Lambda; see the note after Step 3.)
 
 ---
 
@@ -403,7 +413,7 @@ git commit -m "chore: deploy FastAPI health endpoint via Serverless Framework"
 **Files:**
 - Modify: `infra/serverless.yml`
 
-- [ ] **Step 1: Add table resources and IAM permissions to `infra/serverless.yml`**
+- [x] **Step 1: Add table resources and IAM permissions to `infra/serverless.yml`**
 
 Replace the `provider:` block and everything below `package:` with:
 
@@ -435,18 +445,21 @@ package:
   patterns:
     - '!**'
     - '../backend/app/**'
+    - '../backend/__init__.py'
 
 custom:
   pythonRequirements:
     fileName: ../backend/requirements.txt
-    dockerizePip: false
+    # true: pydantic-core (and other native deps) must be built as Linux
+    # wheels via Docker, not macOS wheels — see Task 4's note.
+    dockerizePip: true
 
 plugins:
   - serverless-python-requirements
 
 functions:
   api:
-    handler: app.handler.handler
+    handler: backend.app.handler.handler
     events:
       - httpApi: '*'
 
@@ -477,14 +490,16 @@ resources:
             KeyType: HASH
 ```
 
-- [ ] **Step 2: Deploy the updated stack**
+This carries forward all three fixes from Task 4 (`backend.app.handler.handler` handler path, the 3-entry `package.patterns` including `../backend/__init__.py`, and `dockerizePip: true`) — do not revert to the original 2-entry pattern / `app.handler.handler` / `dockerizePip: false` shown in earlier drafts of this task, or the deploy will regress to the bugs Task 4 already fixed and verified.
+
+- [x] **Step 2: Deploy the updated stack**
 
 ```bash
 cd infra && npx serverless deploy && cd ..
 ```
 Expected: deploy succeeds; output still shows the API endpoint.
 
-- [ ] **Step 3: Verify the tables exist**
+- [x] **Step 3: Verify the tables exist**
 
 ```bash
 aws dynamodb describe-table --table-name boombayan-api-dev-users --query 'Table.TableStatus'
@@ -492,7 +507,7 @@ aws dynamodb describe-table --table-name boombayan-api-dev-config --query 'Table
 ```
 Expected: both print `"ACTIVE"`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add infra/serverless.yml
@@ -506,7 +521,7 @@ git commit -m "feat: provision Users and Config DynamoDB tables"
 **Files:**
 - Modify: `infra/serverless.yml`
 
-- [ ] **Step 1: Add `COGNITO_USER_POOL_ID`/`COGNITO_CLIENT_ID` env vars**
+- [x] **Step 1: Add `COGNITO_USER_POOL_ID`/`COGNITO_CLIENT_ID` env vars**
 
 In `infra/serverless.yml`, under `provider.environment`, add two lines so the block reads:
 
@@ -518,7 +533,7 @@ In `infra/serverless.yml`, under `provider.environment`, add two lines so the bl
     COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
 ```
 
-- [ ] **Step 2: Add the Cognito resources**
+- [x] **Step 2: Add the Cognito resources**
 
 Under `resources.Resources`, after `ConfigTable`, add:
 
@@ -544,13 +559,19 @@ Under `resources.Resources`, after `ConfigTable`, add:
       Properties:
         ClientName: ${self:service}-${sls:stage}-web
         UserPoolId: !Ref CognitoUserPool
+        # ALLOW_USER_SRP_AUTH, not ALLOW_USER_PASSWORD_AUTH: Task 18's real
+        # login test found amazon-cognito-identity-js's
+        # CognitoUser.authenticateUser() always performs SRP internally -
+        # it has no plain-password mode - so the client must allow the SRP
+        # flow or every login fails with InvalidParameterException. SRP is
+        # also strictly more secure (password never transmitted).
         ExplicitAuthFlows:
-          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_USER_SRP_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
         GenerateSecret: false
 ```
 
-- [ ] **Step 3: Add stack outputs so the IDs are easy to read after deploy**
+- [x] **Step 3: Add stack outputs so the IDs are easy to read after deploy**
 
 Outputs are a sibling of `Resources` under the top-level `resources:` key (not a resource themselves). In `infra/serverless.yml`, change:
 
@@ -577,14 +598,14 @@ to add an `Outputs:` sibling block after `Resources:` (keep all the existing res
       Value: !Ref CognitoUserPoolClient
 ```
 
-- [ ] **Step 4: Deploy**
+- [x] **Step 4: Deploy**
 
 ```bash
 cd infra && npx serverless deploy && cd ..
 ```
 Expected: deploy succeeds; output includes a `Stack Outputs:` section listing `UserPoolId` and `UserPoolClientId` values — copy both down, they're needed for the seed script (Task 10) and the frontend (Task 12).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add infra/serverless.yml
@@ -601,7 +622,7 @@ git commit -m "feat: provision Cognito User Pool for authentication"
 - Create: `backend/app/models/user.py`
 - Test: `backend/tests/test_db.py`
 
-- [ ] **Step 1: Write `backend/app/config.py`**
+- [x] **Step 1: Write `backend/app/config.py`**
 
 ```python
 from pydantic_settings import BaseSettings
@@ -618,7 +639,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-- [ ] **Step 2: Write `backend/app/models/user.py`**
+- [x] **Step 2: Write `backend/app/models/user.py`**
 
 ```python
 from pydantic import BaseModel
@@ -631,7 +652,7 @@ class User(BaseModel):
     member_id: str | None = None
 ```
 
-- [ ] **Step 3: Write the failing test** — `backend/tests/test_db.py`
+- [x] **Step 3: Write the failing test** — `backend/tests/test_db.py`
 
 ```python
 import boto3
@@ -676,20 +697,20 @@ def test_get_user_by_id_returns_none_when_missing(dynamodb_users_table):
     assert get_user_by_id("does-not-exist") is None
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 ```bash
 pytest tests/test_db.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.db'`
 
-- [ ] **Step 5: Write `backend/app/db.py`**
+- [x] **Step 5: Write `backend/app/db.py`**
 
 ```python
 import boto3
 
-from app.config import settings
-from app.models.user import User
+from .config import settings
+from .models.user import User
 
 
 def _dynamodb():
@@ -730,14 +751,16 @@ def put_user(user: User) -> None:
     get_users_table().put_item(Item=item)
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+Note: `db.py` uses relative imports (`.config`, `.models.user`), not `from app...`. This is an import convention that applies to every file under `backend/app/` from here on (it does NOT apply to test files in `backend/tests/`, which keep using absolute `from app...` imports as already written, since tests run locally via pytest's `pythonpath = ["."]` rooted at `backend/`, never through Lambda). Reason: Task 4 found that Serverless Framework's packaging preserves a `backend/` prefix in the deployed zip, so Lambda imports this code as `backend.app.*`, not `app.*`. Relative imports resolve correctly under both names; absolute `from app...` imports inside `backend/app/**` would work locally but throw `ModuleNotFoundError: No module named 'app'` once deployed. Every later task that adds a file under `backend/app/` (Tasks 8 and 9 below) follows this same convention — their code blocks already reflect it.
+
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 pytest tests/test_db.py -v
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/config.py backend/app/db.py backend/app/models/user.py backend/tests/test_db.py
@@ -752,7 +775,7 @@ git commit -m "feat: add User model and DynamoDB repository functions"
 - Create: `backend/app/auth.py`
 - Test: `backend/tests/test_auth.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_auth.py`
+- [x] **Step 1: Write the failing test** — `backend/tests/test_auth.py`
 
 ```python
 import jwt
@@ -787,20 +810,20 @@ def test_get_current_user_id_rejects_invalid_token(monkeypatch):
     assert exc_info.value.status_code == 401
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 pytest tests/test_auth.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.auth'`
 
-- [ ] **Step 3: Write `backend/app/auth.py`**
+- [x] **Step 3: Write `backend/app/auth.py`**
 
 ```python
 import jwt
 from fastapi import Header, HTTPException
 
-from app.config import settings
+from .config import settings
 
 _jwks_client: jwt.PyJWKClient | None = None
 
@@ -840,14 +863,16 @@ def get_current_user_id(authorization: str = Header(...)) -> str:
     return claims["sub"]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+(Relative import — `.config`, not `app.config` — per the convention established in Task 7.)
+
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 pytest tests/test_auth.py -v
 ```
 Expected: PASS (3 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/auth.py backend/tests/test_auth.py
@@ -865,7 +890,7 @@ git commit -m "feat: add Cognito JWT verification dependency"
 - Modify: `backend/tests/test_db.py`
 - Test: `backend/tests/test_users.py`
 
-- [ ] **Step 1: Move the moto fixture into `conftest.py` so both test files can use it**
+- [x] **Step 1: Move the moto fixture into `conftest.py` so both test files can use it**
 
 Replace the full contents of `backend/tests/conftest.py` with:
 
@@ -903,7 +928,7 @@ def dynamodb_users_table(monkeypatch):
         yield
 ```
 
-- [ ] **Step 2: Remove the now-duplicated fixture from `test_db.py`**
+- [x] **Step 2: Remove the now-duplicated fixture from `test_db.py`**
 
 Replace the full contents of `backend/tests/test_db.py` with:
 
@@ -925,14 +950,14 @@ def test_get_user_by_id_returns_none_when_missing(dynamodb_users_table):
     assert get_user_by_id("does-not-exist") is None
 ```
 
-- [ ] **Step 3: Run the full suite to confirm the refactor didn't break anything**
+- [x] **Step 3: Run the full suite to confirm the refactor didn't break anything**
 
 ```bash
 pytest -v
 ```
 Expected: all previously-passing tests still PASS.
 
-- [ ] **Step 4: Write the failing test** — `backend/tests/test_users.py`
+- [x] **Step 4: Write the failing test** — `backend/tests/test_users.py`
 
 ```python
 from app.auth import get_current_user_id
@@ -967,21 +992,21 @@ def test_get_me_returns_404_when_user_record_missing(client, dynamodb_users_tabl
     assert response.status_code == 404
 ```
 
-- [ ] **Step 5: Run test to verify it fails**
+- [x] **Step 5: Run test to verify it fails**
 
 ```bash
 pytest tests/test_users.py -v
 ```
 Expected: FAIL with `404` for the first test (route doesn't exist yet, returns FastAPI's default 404) or `ModuleNotFoundError` if the router import path is wrong — either way, both tests fail before implementation.
 
-- [ ] **Step 6: Write `backend/app/routers/users.py`**
+- [x] **Step 6: Write `backend/app/routers/users.py`**
 
 ```python
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.auth import get_current_user_id
-from app.db import get_user_by_id
-from app.models.user import User
+from ..auth import get_current_user_id
+from ..db import get_user_by_id
+from ..models.user import User
 
 router = APIRouter()
 
@@ -994,26 +1019,28 @@ def get_me(user_id: str = Depends(get_current_user_id)) -> User:
     return user
 ```
 
-- [ ] **Step 7: Register the router** — modify `backend/app/main.py` to read:
+(Relative imports — `..auth`, `..db`, `..models.user` — per the convention established in Task 7: two dots since this file is in `app/routers/`, one level deeper than `auth.py`/`db.py`.)
+
+- [x] **Step 7: Register the router** — modify `backend/app/main.py` to read:
 
 ```python
 from fastapi import FastAPI
 
-from app.routers import health, users
+from .routers import health, users
 
 app = FastAPI(title="Boombayan LMS API")
 app.include_router(health.router)
 app.include_router(users.router)
 ```
 
-- [ ] **Step 8: Run test to verify it passes**
+- [x] **Step 8: Run test to verify it passes**
 
 ```bash
 pytest tests/test_users.py -v
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add backend/app/routers/users.py backend/app/main.py backend/tests/conftest.py backend/tests/test_db.py backend/tests/test_users.py
@@ -1027,10 +1054,15 @@ git commit -m "feat: add GET /me endpoint"
 There's no self-registration in this system (§15 of the BRD), so the very first board administrator account has to be created manually — this script creates both the Cognito login and the matching Users-table record in one step.
 
 **Files:**
+- Create: `backend/scripts/__init__.py`
 - Create: `backend/scripts/seed_admin.py`
 - Test: `backend/tests/test_seed_admin.py`
 
-- [ ] **Step 1: Write the failing test** — `backend/tests/test_seed_admin.py`
+- [x] **Step 1: Create `backend/scripts/__init__.py`** (empty file)
+
+This makes `scripts` an explicit package. It's required for Step 7 below to work: running this script directly as `python scripts/seed_admin.py` would put `backend/scripts/` (not `backend/`) at the front of `sys.path` (Python sets `sys.path[0]` to the invoked script's own directory), so `from app.config import settings` inside it would fail with `ModuleNotFoundError: No module named 'app'`. Step 7 instead invokes it as `python -m scripts.seed_admin`, which puts the current directory (`backend/`) on `sys.path` — but `-m` requires `scripts` to be an importable package, hence this file. (Pytest doesn't hit this problem — pytest's own import mechanism plus `pythonpath = ["."]` in `pyproject.toml` already puts `backend/` on the path regardless of how the script is invoked, which is why this gap wasn't caught until Step 7.)
+
+- [x] **Step 2: Write the failing test** — `backend/tests/test_seed_admin.py`
 
 ```python
 import sys
@@ -1061,6 +1093,16 @@ def test_create_cognito_user_returns_sub(cognito_user_pool):
     assert user_id
 
 
+def test_create_cognito_user_leaves_force_change_password_status(cognito_user_pool):
+    from scripts.seed_admin import create_cognito_user
+
+    create_cognito_user("board@boombayan.org", "TempPass123!")
+
+    client = boto3.client("cognito-idp", region_name="us-east-1")
+    response = client.admin_get_user(UserPoolId=cognito_user_pool, Username="board@boombayan.org")
+    assert response["UserStatus"] == "FORCE_CHANGE_PASSWORD"
+
+
 def test_main_creates_cognito_user_and_users_table_record(
     cognito_user_pool, dynamodb_users_table, monkeypatch, capsys
 ):
@@ -1070,7 +1112,7 @@ def test_main_creates_cognito_user_and_users_table_record(
     monkeypatch.setattr(
         sys,
         "argv",
-        ["seed_admin.py", "--email", "board@boombayan.org", "--password", "TempPass123!"],
+        ["seed_admin.py", "--email", "board@boombayan.org", "--temporary-password", "TempPass123!"],
     )
     main()
 
@@ -1083,20 +1125,22 @@ def test_main_creates_cognito_user_and_users_table_record(
     assert items[0]["IsAdministrator"] is True
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 ```bash
 pytest tests/test_seed_admin.py -v
 ```
 Expected: FAIL with `ModuleNotFoundError: No module named 'scripts.seed_admin'`
 
-- [ ] **Step 3: Write `backend/scripts/seed_admin.py`**
+- [x] **Step 4: Write `backend/scripts/seed_admin.py`**
 
 ```python
-"""Creates the first board administrator: a Cognito user plus a matching Users-table record.
+"""Creates the first board administrator: a Cognito user (with a temporary
+password the board member must change on first login) plus a matching
+Users-table record.
 
-Usage:
-    python scripts/seed_admin.py --email board@boombayan.org --password 'TempPass123!'
+Usage (run from the backend/ directory, as a module so `app` is importable — see Step 1):
+    python -m scripts.seed_admin --email board@boombayan.org --temporary-password 'TempPass123!'
 """
 
 import argparse
@@ -1108,7 +1152,7 @@ from app.db import put_user
 from app.models.user import User
 
 
-def create_cognito_user(email: str, password: str) -> str:
+def create_cognito_user(email: str, temporary_password: str) -> str:
     client = boto3.client("cognito-idp", region_name=settings.aws_region)
     client.admin_create_user(
         UserPoolId=settings.cognito_user_pool_id,
@@ -1117,20 +1161,14 @@ def create_cognito_user(email: str, password: str) -> str:
             {"Name": "email", "Value": email},
             {"Name": "email_verified", "Value": "true"},
         ],
-        TemporaryPassword=password,
+        TemporaryPassword=temporary_password,
         MessageAction="SUPPRESS",
     )
-    # Immediately promote the temporary password to permanent. Without this,
-    # the user lands in FORCE_CHANGE_PASSWORD state and the first login
-    # returns a newPasswordRequired challenge instead of a session — which
-    # the frontend login client (Task 12) doesn't handle, since that flow is
-    # only needed for self-service invites, not this admin-bootstrap script.
-    client.admin_set_user_password(
-        UserPoolId=settings.cognito_user_pool_id,
-        Username=email,
-        Password=password,
-        Permanent=True,
-    )
+    # Deliberately left in FORCE_CHANGE_PASSWORD state: the board member sets
+    # their own permanent password on first login via Cognito's
+    # NEW_PASSWORD_REQUIRED challenge (handled by the frontend's login()
+    # function, Task 12, and LoginPage, Task 15). The admin running this
+    # script never learns anyone's real password.
     response = client.admin_get_user(
         UserPoolId=settings.cognito_user_pool_id,
         Username=email,
@@ -1141,10 +1179,10 @@ def create_cognito_user(email: str, password: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--email", required=True)
-    parser.add_argument("--password", required=True)
+    parser.add_argument("--temporary-password", required=True)
     args = parser.parse_args()
 
-    user_id = create_cognito_user(args.email, args.password)
+    user_id = create_cognito_user(args.email, args.temporary_password)
     put_user(User(user_id=user_id, email=args.email, is_administrator=True))
     print(f"Created admin user {args.email} with UserId {user_id}")
 
@@ -1153,21 +1191,23 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 ```bash
 pytest tests/test_seed_admin.py -v
 ```
-Expected: PASS (2 passed)
+Expected: PASS (3 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add backend/scripts/seed_admin.py backend/tests/test_seed_admin.py
+git add backend/scripts/__init__.py backend/scripts/seed_admin.py backend/tests/test_seed_admin.py
 git commit -m "feat: add seed script for first admin user"
 ```
 
-- [ ] **Step 6: Run the script against the real deployed stack to create your own login**
+- [x] **Step 7: Run the script against the real deployed stack to create each board member's login**
+
+Run as a module (`-m scripts.seed_admin`), not as a script path (`scripts/seed_admin.py`) — see Step 1's note for why. Use the venv's Python explicitly, not bare `python` (this shell's `python`/`pip` aliases bypass the venv — see Task 1's report). Run once per board member, with their real email and a temporary password you choose (meets the pool's policy: min 10 chars, upper+lower+number; symbols optional) — share the temporary password with them out-of-band; they'll be forced to set their own permanent password on first login (Task 12/15), so this temporary value is never their real password.
 
 ```bash
 cd backend
@@ -1175,10 +1215,10 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<UserPoolId from Task 6 deploy output> \
 COGNITO_CLIENT_ID=<UserPoolClientId from Task 6 deploy output> \
 AWS_REGION=us-east-1 \
-python scripts/seed_admin.py --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email <board-member-email> --temporary-password '<temporary-password>'
 cd ..
 ```
-Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`. The password is set as permanent, so you can log in with it directly — no forced password-change step.
+Expected: prints `Created admin user <email> with UserId <uuid>`. The user is left in `FORCE_CHANGE_PASSWORD` status — confirm with `aws cognito-idp admin-get-user --user-pool-id <UserPoolId> --username <board-member-email> --query UserStatus`, expect `"FORCE_CHANGE_PASSWORD"`. This account cannot be used to log in for real until the frontend's new-password flow exists (Task 12/15) — that's expected at this point in the plan.
 
 ---
 
@@ -1196,7 +1236,7 @@ Config files are hand-written rather than generated via `npm create vite` so eve
 - Create: `frontend/src/main.tsx`
 - Test: `frontend/src/App.test.tsx`
 
-- [ ] **Step 1: Write `frontend/package.json`**
+- [x] **Step 1: Write `frontend/package.json`**
 
 ```json
 {
@@ -1229,14 +1269,14 @@ Config files are hand-written rather than generated via `npm create vite` so eve
 }
 ```
 
-- [ ] **Step 2: Install dependencies**
+- [x] **Step 2: Install dependencies**
 
 ```bash
 cd frontend && npm install && cd ..
 ```
 Expected: installs with no errors, creates `frontend/node_modules/` and `frontend/package-lock.json`.
 
-- [ ] **Step 3: Write `frontend/vite.config.ts`**
+- [x] **Step 3: Write `frontend/vite.config.ts`**
 
 ```ts
 import { defineConfig } from 'vite'
@@ -1252,7 +1292,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 4: Write `frontend/tsconfig.json`**
+- [x] **Step 4: Write `frontend/tsconfig.json`**
 
 ```json
 {
@@ -1274,7 +1314,7 @@ export default defineConfig({
 }
 ```
 
-- [ ] **Step 5: Write `frontend/index.html`**
+- [x] **Step 5: Write `frontend/index.html`**
 
 ```html
 <!doctype html>
@@ -1290,13 +1330,13 @@ export default defineConfig({
 </html>
 ```
 
-- [ ] **Step 6: Write `frontend/src/setupTests.ts`**
+- [x] **Step 6: Write `frontend/src/setupTests.ts`**
 
 ```ts
 import '@testing-library/jest-dom/vitest'
 ```
 
-- [ ] **Step 7: Write the failing test** — `frontend/src/App.test.tsx`
+- [x] **Step 7: Write the failing test** — `frontend/src/App.test.tsx`
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -1311,14 +1351,14 @@ describe('App', () => {
 })
 ```
 
-- [ ] **Step 8: Run test to verify it fails**
+- [x] **Step 8: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run
 ```
 Expected: FAIL — `Failed to resolve import "./App"`
 
-- [ ] **Step 9: Write `frontend/src/App.tsx`**
+- [x] **Step 9: Write `frontend/src/App.tsx`**
 
 ```tsx
 function App() {
@@ -1328,7 +1368,7 @@ function App() {
 export default App
 ```
 
-- [ ] **Step 10: Write `frontend/src/main.tsx`**
+- [x] **Step 10: Write `frontend/src/main.tsx`**
 
 ```tsx
 import React from 'react'
@@ -1342,14 +1382,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 )
 ```
 
-- [ ] **Step 11: Run test to verify it passes**
+- [x] **Step 11: Run test to verify it passes**
 
 ```bash
 npx vitest run
 ```
 Expected: PASS (1 passed)
 
-- [ ] **Step 12: Verify the dev server boots**
+- [x] **Step 12: Verify the dev server boots**
 
 ```bash
 npx vite --port 5173 &
@@ -1360,7 +1400,7 @@ cd ..
 ```
 Expected: prints `<title>Boombayan LMS</title>`
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add frontend/package.json frontend/package-lock.json frontend/vite.config.ts frontend/tsconfig.json frontend/index.html frontend/src/setupTests.ts frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/main.tsx
@@ -1377,7 +1417,7 @@ git commit -m "chore: scaffold Vite + React + TypeScript frontend"
 - Create: `frontend/src/auth/cognito.ts`
 - Test: `frontend/src/auth/cognito.test.ts`
 
-- [ ] **Step 1: Write `frontend/src/vite-env.d.ts`**
+- [x] **Step 1: Write `frontend/src/vite-env.d.ts`**
 
 ```ts
 /// <reference types="vite/client" />
@@ -1392,7 +1432,7 @@ interface ImportMeta {
 }
 ```
 
-- [ ] **Step 2: Write `frontend/.env.local.example`**
+- [x] **Step 2: Write `frontend/.env.local.example`**
 
 ```
 VITE_COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
@@ -1401,26 +1441,30 @@ VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
 
 Copy this to `frontend/.env.local` (already gitignored) and fill in the real `UserPoolId`/`UserPoolClientId` values from Task 6's deploy output.
 
-- [ ] **Step 3: Write the failing test** — `frontend/src/auth/cognito.test.ts`
+- [x] **Step 3: Write the failing test** — `frontend/src/auth/cognito.test.ts`
+
+`login()` returns a discriminated-union result rather than bare tokens, because Cognito can respond to a login attempt in two genuinely different ways: a normal success, or — for an account still on its admin-issued temporary password (Task 10) — a `NEW_PASSWORD_REQUIRED` challenge that must be completed before any tokens exist. Callers (Task 15's `LoginPage`) branch on `result.status`.
 
 ```ts
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { login } from './cognito'
 
 const authenticateUser = vi.fn()
+const completeNewPasswordChallenge = vi.fn()
 
 vi.mock('amazon-cognito-identity-js', () => ({
   CognitoUserPool: vi.fn(),
-  CognitoUser: vi.fn().mockImplementation(() => ({ authenticateUser })),
+  CognitoUser: vi.fn().mockImplementation(() => ({ authenticateUser, completeNewPasswordChallenge })),
   AuthenticationDetails: vi.fn(),
 }))
 
 describe('login', () => {
   beforeEach(() => {
     authenticateUser.mockReset()
+    completeNewPasswordChallenge.mockReset()
   })
 
-  it('resolves with tokens on successful authentication', async () => {
+  it('resolves with a success result containing tokens on successful authentication', async () => {
     authenticateUser.mockImplementation((_details, callbacks) => {
       callbacks.onSuccess({
         getIdToken: () => ({ getJwtToken: () => 'fake-id-token' }),
@@ -1429,11 +1473,14 @@ describe('login', () => {
       })
     })
 
-    const tokens = await login('board@boombayan.org', 'password123')
-    expect(tokens).toEqual({
-      idToken: 'fake-id-token',
-      accessToken: 'fake-access-token',
-      refreshToken: 'fake-refresh-token',
+    const result = await login('board@boombayan.org', 'password123')
+    expect(result).toEqual({
+      status: 'success',
+      tokens: {
+        idToken: 'fake-id-token',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      },
     })
   })
 
@@ -1446,23 +1493,49 @@ describe('login', () => {
       'Incorrect username or password.',
     )
   })
+
+  it('resolves with a newPasswordRequired result that can complete the challenge', async () => {
+    authenticateUser.mockImplementation((_details, callbacks) => {
+      callbacks.newPasswordRequired({ email: 'board@boombayan.org' }, [])
+    })
+    completeNewPasswordChallenge.mockImplementation((_newPassword, _attrs, callbacks) => {
+      callbacks.onSuccess({
+        getIdToken: () => ({ getJwtToken: () => 'fake-id-token' }),
+        getAccessToken: () => ({ getJwtToken: () => 'fake-access-token' }),
+        getRefreshToken: () => ({ getToken: () => 'fake-refresh-token' }),
+      })
+    })
+
+    const result = await login('board@boombayan.org', 'temp-password')
+    expect(result.status).toBe('newPasswordRequired')
+    if (result.status !== 'newPasswordRequired') throw new Error('expected newPasswordRequired')
+
+    const tokens = await result.completeNewPassword('new-strong-password')
+    expect(tokens).toEqual({
+      idToken: 'fake-id-token',
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+    })
+    expect(completeNewPasswordChallenge).toHaveBeenCalledWith('new-strong-password', {}, expect.anything())
+  })
 })
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/auth/cognito.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./cognito"`
 
-- [ ] **Step 5: Write `frontend/src/auth/cognito.ts`**
+- [x] **Step 5: Write `frontend/src/auth/cognito.ts`**
 
 ```ts
 import {
   AuthenticationDetails,
   CognitoUser,
   CognitoUserPool,
+  CognitoUserSession,
 } from 'amazon-cognito-identity-js'
 
 export interface AuthTokens {
@@ -1471,6 +1544,10 @@ export interface AuthTokens {
   refreshToken: string
 }
 
+export type LoginResult =
+  | { status: 'success'; tokens: AuthTokens }
+  | { status: 'newPasswordRequired'; completeNewPassword: (newPassword: string) => Promise<AuthTokens> }
+
 function getUserPool(): CognitoUserPool {
   return new CognitoUserPool({
     UserPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
@@ -1478,7 +1555,15 @@ function getUserPool(): CognitoUserPool {
   })
 }
 
-export function login(email: string, password: string): Promise<AuthTokens> {
+function tokensFromSession(session: CognitoUserSession): AuthTokens {
+  return {
+    idToken: session.getIdToken().getJwtToken(),
+    accessToken: session.getAccessToken().getJwtToken(),
+    refreshToken: session.getRefreshToken().getToken(),
+  }
+}
+
+export function login(email: string, password: string): Promise<LoginResult> {
   const userPool = getUserPool()
   const cognitoUser = new CognitoUser({ Username: email, Pool: userPool })
   const authDetails = new AuthenticationDetails({ Username: email, Password: password })
@@ -1486,26 +1571,34 @@ export function login(email: string, password: string): Promise<AuthTokens> {
   return new Promise((resolve, reject) => {
     cognitoUser.authenticateUser(authDetails, {
       onSuccess: (session) => {
-        resolve({
-          idToken: session.getIdToken().getJwtToken(),
-          accessToken: session.getAccessToken().getJwtToken(),
-          refreshToken: session.getRefreshToken().getToken(),
-        })
+        resolve({ status: 'success', tokens: tokensFromSession(session) })
       },
       onFailure: (err) => reject(err),
+      newPasswordRequired: () => {
+        resolve({
+          status: 'newPasswordRequired',
+          completeNewPassword: (newPassword: string) =>
+            new Promise((resolveChallenge, rejectChallenge) => {
+              cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
+                onSuccess: (session) => resolveChallenge(tokensFromSession(session)),
+                onFailure: (err) => rejectChallenge(err),
+              })
+            }),
+        })
+      },
     })
   })
 }
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 npx vitest run src/auth/cognito.test.ts
 ```
-Expected: PASS (2 passed)
+Expected: PASS (3 passed)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ..
@@ -1521,13 +1614,15 @@ git commit -m "feat: add Cognito login client"
 - Create: `frontend/src/auth/AuthContext.tsx`
 - Test: `frontend/src/auth/AuthContext.test.tsx`
 
-- [ ] **Step 1: Write the failing test** — `frontend/src/auth/AuthContext.test.tsx`
+- [x] **Step 1: Write the failing test** — `frontend/src/auth/AuthContext.test.tsx`
+
+`login()` here mirrors `cognito.ts`'s `LoginResult` shape: it sets `idToken` immediately on a `success` result, but for `newPasswordRequired` it does NOT set anything — there are no tokens yet, only a challenge to complete. `setTokens()` is the method `LoginPage` (Task 15) calls once that challenge is completed.
 
 ```tsx
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, useAuth } from './AuthContext'
-import { login as cognitoLogin } from './cognito'
+import { login as cognitoLogin, LoginResult } from './cognito'
 
 vi.mock('./cognito', () => ({
   login: vi.fn(),
@@ -1546,9 +1641,12 @@ describe('AuthProvider', () => {
 
   it('sets idToken and persists it to localStorage after a successful login', async () => {
     vi.mocked(cognitoLogin).mockResolvedValue({
-      idToken: 'fake-id-token',
-      accessToken: 'fake-access-token',
-      refreshToken: 'fake-refresh-token',
+      status: 'success',
+      tokens: {
+        idToken: 'fake-id-token',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      },
     })
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
 
@@ -1560,11 +1658,45 @@ describe('AuthProvider', () => {
     expect(localStorage.getItem('boombayan.auth.idToken')).toBe('fake-id-token')
   })
 
+  it('does not set idToken when login returns newPasswordRequired', async () => {
+    vi.mocked(cognitoLogin).mockResolvedValue({
+      status: 'newPasswordRequired',
+      completeNewPassword: vi.fn(),
+    })
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+    let loginResult: LoginResult | undefined
+    await act(async () => {
+      loginResult = await result.current.login('board@boombayan.org', 'temp-password')
+    })
+
+    expect(loginResult?.status).toBe('newPasswordRequired')
+    expect(result.current.idToken).toBeNull()
+  })
+
+  it('setTokens sets idToken and persists it to localStorage', () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
+
+    act(() => {
+      result.current.setTokens({
+        idToken: 'fake-id-token',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      })
+    })
+
+    expect(result.current.idToken).toBe('fake-id-token')
+    expect(localStorage.getItem('boombayan.auth.idToken')).toBe('fake-id-token')
+  })
+
   it('clears idToken and localStorage on logout', async () => {
     vi.mocked(cognitoLogin).mockResolvedValue({
-      idToken: 'fake-id-token',
-      accessToken: 'fake-access-token',
-      refreshToken: 'fake-refresh-token',
+      status: 'success',
+      tokens: {
+        idToken: 'fake-id-token',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      },
     })
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider })
     await act(async () => {
@@ -1581,24 +1713,27 @@ describe('AuthProvider', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+`loginResult` is explicitly typed `LoginResult | undefined` rather than left for inference: it's declared outside the `act(async () => {...})` closure and only assigned inside it, which makes TypeScript infer `never` for it at the `loginResult?.status` usage site under `strict` mode — `vitest run` doesn't type-check so this wouldn't fail Step 4 below, but `npm run build` (`tsc -b`) would.
+
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/auth/AuthContext.test.tsx
 ```
 Expected: FAIL — `Failed to resolve import "./AuthContext"`
 
-- [ ] **Step 3: Write `frontend/src/auth/AuthContext.tsx`**
+- [x] **Step 3: Write `frontend/src/auth/AuthContext.tsx`**
 
 ```tsx
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
-import { AuthTokens, login as cognitoLogin } from './cognito'
+import { AuthTokens, LoginResult, login as cognitoLogin } from './cognito'
 
 const STORAGE_KEY = 'boombayan.auth.idToken'
 
 interface AuthContextValue {
   idToken: string | null
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<LoginResult>
+  setTokens: (tokens: AuthTokens) => void
   logout: () => void
 }
 
@@ -1617,8 +1752,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [idToken])
 
-  async function login(email: string, password: string) {
-    const tokens: AuthTokens = await cognitoLogin(email, password)
+  async function login(email: string, password: string): Promise<LoginResult> {
+    const result = await cognitoLogin(email, password)
+    if (result.status === 'success') {
+      setIdToken(result.tokens.idToken)
+    }
+    return result
+  }
+
+  function setTokens(tokens: AuthTokens) {
     setIdToken(tokens.idToken)
   }
 
@@ -1627,7 +1769,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ idToken, login, logout }}>
+    <AuthContext.Provider value={{ idToken, login, setTokens, logout }}>
       {children}
     </AuthContext.Provider>
   )
@@ -1642,14 +1784,14 @@ export function useAuth(): AuthContextValue {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npx vitest run src/auth/AuthContext.test.tsx
 ```
-Expected: PASS (3 passed)
+Expected: PASS (5 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ..
@@ -1665,7 +1807,7 @@ git commit -m "feat: add AuthContext for session state"
 - Create: `frontend/src/components/ProtectedRoute.tsx`
 - Test: `frontend/src/components/ProtectedRoute.test.tsx`
 
-- [ ] **Step 1: Write the failing test** — `frontend/src/components/ProtectedRoute.test.tsx`
+- [x] **Step 1: Write the failing test** — `frontend/src/components/ProtectedRoute.test.tsx`
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -1693,27 +1835,37 @@ function renderWithRoutes(initialPath: string) {
 
 describe('ProtectedRoute', () => {
   it('redirects to /login when there is no idToken', () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: null, login: vi.fn(), logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({
+      idToken: null,
+      login: vi.fn(),
+      setTokens: vi.fn(),
+      logout: vi.fn(),
+    })
     renderWithRoutes('/dashboard')
     expect(screen.getByText('Login Page')).toBeInTheDocument()
   })
 
   it('renders the nested route when idToken is present', () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: 'token', login: vi.fn(), logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({
+      idToken: 'token',
+      login: vi.fn(),
+      setTokens: vi.fn(),
+      logout: vi.fn(),
+    })
     renderWithRoutes('/dashboard')
     expect(screen.getByText('Dashboard Page')).toBeInTheDocument()
   })
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/components/ProtectedRoute.test.tsx
 ```
 Expected: FAIL — `Failed to resolve import "./ProtectedRoute"`
 
-- [ ] **Step 3: Write `frontend/src/components/ProtectedRoute.tsx`**
+- [x] **Step 3: Write `frontend/src/components/ProtectedRoute.tsx`**
 
 ```tsx
 import { Navigate, Outlet } from 'react-router-dom'
@@ -1728,14 +1880,14 @@ export function ProtectedRoute() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npx vitest run src/components/ProtectedRoute.test.tsx
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ..
@@ -1751,7 +1903,9 @@ git commit -m "feat: add ProtectedRoute guard"
 - Create: `frontend/src/pages/LoginPage.tsx`
 - Test: `frontend/src/pages/LoginPage.test.tsx`
 
-- [ ] **Step 1: Write the failing test** — `frontend/src/pages/LoginPage.test.tsx`
+- [x] **Step 1: Write the failing test** — `frontend/src/pages/LoginPage.test.tsx`
+
+Board members are seeded (Task 10) with a temporary password, so the first real login for each of them returns `newPasswordRequired`, not `success` — this page needs to handle that as the *normal*, expected first-login path, not an edge case.
 
 ```tsx
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -1766,8 +1920,11 @@ vi.mock('../auth/AuthContext', () => ({
 
 describe('LoginPage', () => {
   it('calls login with the entered email and password on submit', async () => {
-    const login = vi.fn().mockResolvedValue(undefined)
-    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, logout: vi.fn() })
+    const login = vi.fn().mockResolvedValue({
+      status: 'success',
+      tokens: { idToken: 'fake-id-token', accessToken: 'fake-access-token', refreshToken: 'fake-refresh-token' },
+    })
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens: vi.fn(), logout: vi.fn() })
 
     render(
       <MemoryRouter>
@@ -1784,7 +1941,7 @@ describe('LoginPage', () => {
 
   it('shows an error message when login fails', async () => {
     const login = vi.fn().mockRejectedValue(new Error('Incorrect username or password.'))
-    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens: vi.fn(), logout: vi.fn() })
 
     render(
       <MemoryRouter>
@@ -1798,39 +1955,134 @@ describe('LoginPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password.')
   })
+
+  it('shows the new-password form on newPasswordRequired, and completes login on submit', async () => {
+    const completeNewPassword = vi.fn().mockResolvedValue({
+      idToken: 'fake-id-token',
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+    })
+    const login = vi.fn().mockResolvedValue({ status: 'newPasswordRequired', completeNewPassword })
+    const setTokens = vi.fn()
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens, logout: vi.fn() })
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'board@boombayan.org' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'temp-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    expect(await screen.findByLabelText('New password')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'new-strong-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Set password' }))
+
+    await waitFor(() => expect(completeNewPassword).toHaveBeenCalledWith('new-strong-password'))
+    expect(setTokens).toHaveBeenCalledWith({
+      idToken: 'fake-id-token',
+      accessToken: 'fake-access-token',
+      refreshToken: 'fake-refresh-token',
+    })
+  })
+
+  it('shows an error when completing the new-password challenge fails', async () => {
+    const completeNewPassword = vi.fn().mockRejectedValue(new Error('Password does not meet requirements.'))
+    const login = vi.fn().mockResolvedValue({ status: 'newPasswordRequired', completeNewPassword })
+    vi.mocked(useAuth).mockReturnValue({ idToken: null, login, setTokens: vi.fn(), logout: vi.fn() })
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'board@boombayan.org' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'temp-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    await screen.findByLabelText('New password')
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'weak' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Set password' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not set new password. Please try again.')
+  })
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/pages/LoginPage.test.tsx
 ```
 Expected: FAIL — `Failed to resolve import "./LoginPage"`
 
-- [ ] **Step 3: Write `frontend/src/pages/LoginPage.tsx`**
+- [x] **Step 3: Write `frontend/src/pages/LoginPage.tsx`**
 
 ```tsx
 import { FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AuthTokens } from '../auth/cognito'
 import { useAuth } from '../auth/AuthContext'
+
+type CompleteNewPassword = (newPassword: string) => Promise<AuthTokens>
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const { login } = useAuth()
+  const [newPassword, setNewPassword] = useState('')
+  const [newPasswordError, setNewPasswordError] = useState<string | null>(null)
+  const [completeNewPassword, setCompleteNewPassword] = useState<CompleteNewPassword | null>(null)
+  const { login, setTokens } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
     try {
-      await login(email, password)
-      navigate('/dashboard')
+      const result = await login(email, password)
+      if (result.status === 'newPasswordRequired') {
+        setCompleteNewPassword(() => result.completeNewPassword)
+      } else {
+        navigate('/dashboard')
+      }
     } catch {
       setError('Invalid email or password.')
     }
+  }
+
+  async function handleNewPasswordSubmit(event: FormEvent) {
+    event.preventDefault()
+    setNewPasswordError(null)
+    try {
+      const tokens = await completeNewPassword!(newPassword)
+      setTokens(tokens)
+      navigate('/dashboard')
+    } catch {
+      setNewPasswordError('Could not set new password. Please try again.')
+    }
+  }
+
+  if (completeNewPassword) {
+    return (
+      <form onSubmit={handleNewPasswordSubmit}>
+        <h1>Set a new password</h1>
+        <label htmlFor="new-password">New password</label>
+        <input
+          id="new-password"
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+        />
+        {newPasswordError && <p role="alert">{newPasswordError}</p>}
+        <button type="submit">Set password</button>
+      </form>
+    )
   }
 
   return (
@@ -1859,14 +2111,14 @@ export function LoginPage() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npx vitest run src/pages/LoginPage.test.tsx
 ```
-Expected: PASS (2 passed)
+Expected: PASS (4 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ..
@@ -1884,7 +2136,7 @@ git commit -m "feat: add LoginPage"
 - Create: `frontend/src/api/client.ts`
 - Test: `frontend/src/api/client.test.ts`
 
-- [ ] **Step 1: Add `VITE_API_BASE_URL` to the env types** — modify `frontend/src/vite-env.d.ts` to read:
+- [x] **Step 1: Add `VITE_API_BASE_URL` to the env types** — modify `frontend/src/vite-env.d.ts` to read:
 
 ```ts
 /// <reference types="vite/client" />
@@ -1900,7 +2152,7 @@ interface ImportMeta {
 }
 ```
 
-- [ ] **Step 2: Add it to the example env file** — append to `frontend/.env.local.example`:
+- [x] **Step 2: Add it to the example env file** — append to `frontend/.env.local.example`:
 
 ```
 VITE_API_BASE_URL=https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com
@@ -1908,7 +2160,7 @@ VITE_API_BASE_URL=https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com
 
 Fill in the real API Gateway URL from Task 4's deploy output (no trailing slash).
 
-- [ ] **Step 3: Write the failing test** — `frontend/src/api/client.test.ts`
+- [x] **Step 3: Write the failing test** — `frontend/src/api/client.test.ts`
 
 ```ts
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -1946,14 +2198,14 @@ describe('apiFetch', () => {
 })
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/api/client.test.ts
 ```
 Expected: FAIL — `Failed to resolve import "./client"`
 
-- [ ] **Step 5: Write `frontend/src/api/client.ts`**
+- [x] **Step 5: Write `frontend/src/api/client.ts`**
 
 ```ts
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -1971,14 +2223,14 @@ export async function apiFetch<T>(path: string, idToken: string): Promise<T> {
 }
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 ```bash
 npx vitest run src/api/client.test.ts
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ..
@@ -1996,7 +2248,7 @@ git commit -m "feat: add API client with bearer token attachment"
 - Modify: `frontend/src/App.tsx`
 - Modify: `frontend/src/App.test.tsx`
 
-- [ ] **Step 1: Write the failing test** — `frontend/src/pages/DashboardPage.test.tsx`
+- [x] **Step 1: Write the failing test** — `frontend/src/pages/DashboardPage.test.tsx`
 
 ```tsx
 import { render, screen, waitFor } from '@testing-library/react'
@@ -2014,7 +2266,7 @@ vi.mock('../auth/AuthContext', () => ({
 
 describe('DashboardPage', () => {
   it('shows the current user email after loading', async () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
     vi.mocked(apiFetch).mockResolvedValue({
       user_id: 'abc123',
       email: 'board@boombayan.org',
@@ -2031,7 +2283,7 @@ describe('DashboardPage', () => {
   })
 
   it('shows an error message when the profile fetch fails', async () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), logout: vi.fn() })
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
     vi.mocked(apiFetch).mockRejectedValue(new Error('boom'))
 
     render(<DashboardPage />)
@@ -2041,14 +2293,14 @@ describe('DashboardPage', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd frontend && npx vitest run src/pages/DashboardPage.test.tsx
 ```
 Expected: FAIL — `Failed to resolve import "./DashboardPage"`
 
-- [ ] **Step 3: Write `frontend/src/pages/DashboardPage.tsx`**
+- [x] **Step 3: Write `frontend/src/pages/DashboardPage.tsx`**
 
 ```tsx
 import { useEffect, useState } from 'react'
@@ -2092,14 +2344,14 @@ export function DashboardPage() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npx vitest run src/pages/DashboardPage.test.tsx
 ```
 Expected: PASS (2 passed)
 
-- [ ] **Step 5: Wire up routing** — replace `frontend/src/App.tsx`:
+- [x] **Step 5: Wire up routing** — replace `frontend/src/App.tsx`:
 
 ```tsx
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
@@ -2127,7 +2379,7 @@ function App() {
 export default App
 ```
 
-- [ ] **Step 6: Update the now-outdated App test** — replace `frontend/src/App.test.tsx` (the Task 11 placeholder test asserted on static text; now App does real routing, so this asserts the actual intended behavior: an unauthenticated visitor lands on the login page):
+- [x] **Step 6: Update the now-outdated App test** — replace `frontend/src/App.test.tsx` (the Task 11 placeholder test asserted on static text; now App does real routing, so this asserts the actual intended behavior: an unauthenticated visitor lands on the login page):
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -2142,14 +2394,14 @@ describe('App', () => {
 })
 ```
 
-- [ ] **Step 7: Run the full frontend suite**
+- [x] **Step 7: Run the full frontend suite**
 
 ```bash
 npx vitest run
 ```
 Expected: all tests PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd ..
@@ -2163,16 +2415,18 @@ git commit -m "feat: add DashboardPage and wire up app routing"
 
 This wires together every prior task against the real deployed AWS stack — no mocks. It's the actual proof that login works.
 
+**Execution note:** run via a scripted headless-Chromium (Playwright) session rather than a human clicking through a browser, since no interactive GUI was available — same steps, same real deployed stack, same real seeded account. This run found and fixed three real bugs that 37 passing unit/integration tests never caught (see "Three real bugs found only by Task 18's live browser test" in the Plan Self-Review Notes at the end of this document): a missing `global` browser polyfill, a Cognito auth-flow mismatch (`ALLOW_USER_SRP_AUTH` required, not `ALLOW_USER_PASSWORD_AUTH`), and a CORS preflight failure caused by API Gateway's automatic CORS not engaging on a `$default` catch-all route. All steps below were completed and verified after those fixes, with zero browser console errors. The seeded account (michaelseno@gmail.com) completed its real `NEW_PASSWORD_REQUIRED` challenge and is now `CONFIRMED`.
+
 **Files:** none (manual verification only).
 
-- [ ] **Step 1: Confirm `frontend/.env.local` has real values**
+- [x] **Step 1: Confirm `frontend/.env.local` has real values**
 
 ```bash
 cat frontend/.env.local
 ```
 Expected: three lines with real (non-placeholder) values for `VITE_COGNITO_USER_POOL_ID`, `VITE_COGNITO_CLIENT_ID` (from Task 6's deploy output) and `VITE_API_BASE_URL` (from Task 4's deploy output, no trailing slash). Create this file from `frontend/.env.local.example` if it doesn't exist yet.
 
-- [ ] **Step 2: Confirm the seed admin account exists** (skip if already done in Task 10, Step 6)
+- [x] **Step 2: Confirm a seed admin account exists** (skip if already done in Task 10, Step 7)
 
 ```bash
 cd backend
@@ -2180,34 +2434,35 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<UserPoolId> \
 COGNITO_CLIENT_ID=<UserPoolClientId> \
 AWS_REGION=us-east-1 \
-python scripts/seed_admin.py --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email you@yourdomain.com --temporary-password 'TempPassword123!'
 cd ..
 ```
-Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`.
+Expected: prints `Created admin user you@yourdomain.com with UserId <uuid>`. The account is left in `FORCE_CHANGE_PASSWORD` status — that's expected, Step 5 below completes it.
 
-- [ ] **Step 3: Start the frontend dev server**
+- [x] **Step 3: Start the frontend dev server**
 
 ```bash
 cd frontend && npm run dev
 ```
 Expected: prints a local URL, typically `http://localhost:5173/`.
 
-- [ ] **Step 4: Open the app in a browser**
+- [x] **Step 4: Open the app in a browser**
 
 Navigate to `http://localhost:5173/`.
 Expected: redirected to `/login`, showing the "Boombayan LMS" heading and email/password fields.
 
-- [ ] **Step 5: Log in with the seeded admin credentials**
+- [x] **Step 5: Log in with the temporary credentials and set a real password**
 
-Enter the email and password from Step 2, click "Log in".
-Expected: redirected to `/dashboard`, briefly shows "Loading...", then shows "Welcome, you@yourdomain.com" and "Administrator".
+Enter the email and temporary password from Step 2, click "Log in".
+Expected: instead of going straight to the dashboard, the page shows "Set a new password" with a single password field — this is the `NEW_PASSWORD_REQUIRED` challenge, the first-login path every seeded account takes. Enter a real password (meets the pool's policy: min 10 chars, upper+lower+number), click "Set password".
+Expected: redirected to `/dashboard`, briefly shows "Loading...", then shows "Welcome, you@yourdomain.com" and "Administrator". Confirm via `aws cognito-idp admin-get-user --user-pool-id <UserPoolId> --username you@yourdomain.com --query UserStatus` that status is now `"CONFIRMED"`, not `"FORCE_CHANGE_PASSWORD"`.
 
-- [ ] **Step 6: Verify logout and re-protection**
+- [x] **Step 6: Verify logout and re-protection**
 
 Click "Log out".
-Expected: returns to `/login`. Manually navigating the browser to `http://localhost:5173/dashboard` redirects back to `/login` (no idToken).
+Expected: returns to `/login`. Manually navigating the browser to `http://localhost:5173/dashboard` redirects back to `/login` (no idToken). Logging back in with the email and the *real* password set in Step 5 (the temporary password no longer works) should go straight to `/dashboard` — no new-password form this time, since the account is now `CONFIRMED`.
 
-- [ ] **Step 7: Stop the dev server**
+- [x] **Step 7: Stop the dev server**
 
 ```bash
 # Ctrl+C in the terminal running npm run dev
@@ -2223,7 +2478,7 @@ No commit for this task — it's verification of work already committed in Tasks
 **Files:**
 - Create: `README.md`
 
-- [ ] **Step 1: Write `README.md`**
+- [x] **Step 1: Write `README.md`**
 
 ```markdown
 # Boombayan Lending Management System
@@ -2274,9 +2529,9 @@ npx serverless deploy
 Deploy output includes the API Gateway URL and the Cognito `UserPoolId` /
 `UserPoolClientId` — copy these into `frontend/.env.local`.
 
-## Creating the first admin login
+## Creating board member logins
 
-There's no self-registration. After deploying, create the first board administrator:
+There's no self-registration. After deploying, create each board member's account with a temporary password (share it with them out-of-band — they'll be forced to set their own permanent password on first login):
 
 \`\`\`bash
 cd backend
@@ -2284,7 +2539,7 @@ USERS_TABLE=boombayan-api-dev-users \
 COGNITO_USER_POOL_ID=<from deploy output> \
 COGNITO_CLIENT_ID=<from deploy output> \
 AWS_REGION=us-east-1 \
-python scripts/seed_admin.py --email you@yourdomain.com --password 'YourRealPassword123!'
+.venv/bin/python -m scripts.seed_admin --email <board-member-email> --temporary-password '<temporary-password>'
 \`\`\`
 
 ## Running tests
@@ -2295,7 +2550,7 @@ cd frontend && npm run test
 \`\`\`
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add README.md
@@ -2309,4 +2564,13 @@ git commit -m "docs: add project README"
 - **Spec coverage:** This plan implements design doc §2 (architecture), §3 (Users/Members link via the `member_id` field — full Member CRUD is deferred to the next plan), and the auth/dashboard-shell slice of §3's role model (`is_administrator` flag is stored and surfaced, but admin-only endpoint enforcement is deferred to Plan 2 since there are no protected admin actions yet beyond viewing one's own profile).
 - **Deferred to later plans (by design, per the phase breakdown):** Member/Share management (Plan 2), Loan lifecycle (Plan 3), Payments/Penalties (Plan 4), Cycles/Dividends/Reporting (Plan 5), and S3/CloudFront static hosting for the frontend (deferred until there's a stable build worth deploying statically — local `npm run dev` against the real deployed backend is sufficient to prove this plan's scope works end-to-end).
 - **Type consistency check:** `User` Pydantic model (Task 7) fields — `user_id`, `email`, `is_administrator`, `member_id` — match exactly what `GET /me` returns (Task 9) and what `DashboardPage`'s `CurrentUser` interface expects (Task 17), including the snake_case JSON keys (FastAPI/Pydantic serializes Python attribute names as-is, not camelCase).
+- **Security follow-up resolved, not deferred:** Task 6's original review suggested migrating from `ALLOW_USER_PASSWORD_AUTH` to `ALLOW_USER_SRP_AUTH` as an optional Phase 2 hardening item. Task 18's real login test against the live stack showed this isn't optional at all — `amazon-cognito-identity-js`'s `authenticateUser()` only performs SRP, so `ALLOW_USER_PASSWORD_AUTH` alone made every login fail. Fixed in Phase 1 (see Task 6's updated `ExplicitAuthFlows`).
+- **Remaining Task 6 follow-ups (still deferred to Phase 2 by deliberate choice):** (1) No `AccountRecoverySetting` is configured — harmless today since there's no self-service or forgot-password flow to trigger it, but should be set explicitly once one is built. (2) No MFA — explicitly out of scope for Phase 1 per the design doc, revisit given this is a financial application's admin/board login.
+- **Three real bugs found only by Task 18's live browser test, noted for future plans:** 37 passing unit/integration tests (frontend + backend) never caught any of: (1) `amazon-cognito-identity-js` requiring a `global` polyfill in real browsers (jsdom has `global` natively, masking this in tests) — fixed via `vite.config.ts`'s `define: { global: 'globalThis' }`. (2) The SRP auth mismatch above. (3) API Gateway HTTP API's automatic CORS handling not engaging for OPTIONS requests against a `$default` catch-all route (this service's only route) — the preflight fell through to the Lambda and got a 405; fixed via FastAPI's `CORSMiddleware` instead of relying on `serverless.yml`'s `httpApi.cors` (removed, since it had no effect here). **Takeaway for Plan 2+:** a real end-to-end run against deployed infrastructure is not optional polish — these categories of bugs (browser-vs-jsdom globals, auth-flow/library mismatches, routing-shape-dependent platform behavior) are structurally invisible to mocked test suites no matter how thorough.
+- **CORS is wide open, noted during the final whole-plan review:** `backend/app/main.py`'s `CORSMiddleware` uses `allow_origins=["*"]`/`allow_methods=["*"]`/`allow_headers=["*"]` — the minimal fix to unblock Task 18's live browser test. Low risk today since every endpoint requires a valid Cognito-signed bearer token regardless of request origin (no cookies, no ambient credentials to forge cross-origin). Tighten to an explicit origin allowlist (the deployed frontend's actual origin(s)) before this app has any cookie-based or unauthenticated-but-sensitive endpoint — likely worth doing as part of Plan 2's first task rather than waiting for a reason to revisit it.
+- **Test coverage gap noted during Task 8's code review:** `backend/app/auth.py`'s real JWKS-fetch/RS256-signature-verification path (`decode_token` → `_get_jwks_client()` → `PyJWKClient`) is never exercised by `test_auth.py` — all 3 tests mock `decode_token` entirely, testing only `get_current_user_id`'s header-parsing/error-translation logic. A regression in the actual crypto/JWKS-fetch code wouldn't be caught until Task 18's manual end-to-end verification against the real deployed Cognito pool. Acceptable for now (consistent with the plan's own prescribed tests, and Task 18 provides a real-world backstop), but worth a fast-follow: a test that signs a token with a throwaway RS256 keypair, serves the public JWK from a mocked HTTP endpoint, and asserts `decode_token` round-trips correctly (including rejecting wrong-audience/wrong-token_use tokens).
+- **Provisioning-divergence risk noted during Task 9's code review:** `GET /me` returns a generic `404 User not found` for a Cognito-authenticated user with no matching Users-table row. This isn't hypothetical — there's no self-registration in this system, so every account is provisioned out-of-band, and `backend/scripts/seed_admin.py` (Task 10) is, for now, the *only* sanctioned path that creates both the Cognito login and the Users-table row together. If a Cognito user is ever created any other way (console, a future admin UI that forgets to also write the DynamoDB row, etc.), they'll authenticate successfully and then hit this 404, which reads like a routing bug rather than what it actually is. Documented in `routers/users.py` with a comment; the response message itself is left generic for now (an alternative like "Your account is not fully provisioned. Contact an administrator." was considered but not applied) — revisit if/when a non-seed-script account-creation path is added in a later plan.
+- **Dev-tooling dependency bump deferred during Task 11's code review:** `npm audit` flags 5 vulnerabilities (3 moderate, 1 high, 1 critical-rated) rooted in `esbuild`/`vite`/`vitest`/`vite-node`/`@vitest/mocker`. All are dev-tooling-only — the "critical" one requires Vitest's UI/watch server to be listening and network-exposed, which this project never runs (`test` script is `vitest run`, one-shot headless) — and fixing them requires `npm audit fix --force`, a semver-major bump (vite 5→6, vitest 2→4). The one production-impacting finding (`js-cookie` 2.2.1 via `amazon-cognito-identity-js`, CVSS 7.5) was fixed non-breaking in a follow-up commit. The major-version dev-tooling bump is intentionally deferred — revisit once there's slack to absorb Vite 6/Vitest 4's breaking changes, rather than forcing it mid-build.
+- **No session-refresh flow, noted during Task 13's code review:** Cognito's ID token has a default ~1-hour expiry, and nothing in this 19-task plan ever uses the refresh token to renew it — `AuthContext` extracts only `idToken` from `AuthTokens` and discards `accessToken`/`refreshToken` (documented in code). Once the token expires, the only recovery path is a full re-login (the user gets 401s from the API, has to log out/in again) — there's no silent background refresh. For 5 board members using an internal tool this is a tolerable, low-priority limitation, not a blocker, but it's worth knowing going into Task 18's manual verification so an hourly forced re-login isn't mistaken for a bug. Revisit if session length becomes a real friction point in practice.
+- **`apiFetch` is GET-only with no body/method support, noted during Task 16's code review:** `apiFetch<T>(path, idToken)` only attaches an `Authorization` header — no `Content-Type`, no request body, implicit GET. This is YAGNI-correct for Task 17's single `/me` call, but it's explicitly the template every future endpoint call will copy, and Plan 2+ (loans, payments, members) will need POST/PUT with JSON bodies. Extending the signature later (e.g. an optional `init`/options parameter) is additive and backward-compatible, not a foreclosure — just flagging so it's a deliberate addition when Plan 2 starts, not a surprised retrofit across many call sites.
 
