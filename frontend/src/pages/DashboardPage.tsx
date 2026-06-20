@@ -16,9 +16,17 @@ export function DashboardPage() {
 
   useEffect(() => {
     if (!idToken) return
+    let cancelled = false
     apiFetch<CurrentUser>('/me', idToken)
-      .then(setUser)
-      .catch(() => setError('Could not load your profile.'))
+      .then((data) => {
+        if (!cancelled) setUser(data)
+      })
+      .catch(() => {
+        if (!cancelled) setError('Could not load your profile.')
+      })
+    return () => {
+      cancelled = true
+    }
   }, [idToken])
 
   if (error) {
