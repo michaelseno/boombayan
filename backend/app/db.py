@@ -133,6 +133,8 @@ def get_config() -> Config:
     )
 
 
+# Performs full replacement of config. Callers needing partial updates must call
+# get_config() first, modify the returned object, then pass it here.
 def put_config(config: Config) -> None:
     get_config_table().put_item(
         Item={
