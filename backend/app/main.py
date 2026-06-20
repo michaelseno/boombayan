@@ -4,6 +4,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .routers import health, users
 
+
+def _parse_allowed_origins(value: str) -> list[str]:
+    """Split a comma-separated origin list, trimming whitespace around each
+    entry so "a, b" (the natural way most people write a multi-origin list)
+    works the same as "a,b"."""
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+
 app = FastAPI(title="Boombayan LMS API")
 # API Gateway HTTP API's automatic CORS handling doesn't engage for OPTIONS
 # requests against a $default catch-all route (this Lambda's only route,
@@ -17,7 +25,7 @@ app = FastAPI(title="Boombayan LMS API")
 # unauthenticated endpoint is ever added.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_allowed_origins.split(","),
+    allow_origins=_parse_allowed_origins(settings.cors_allowed_origins),
     allow_methods=["*"],
     allow_headers=["*"],
 )
