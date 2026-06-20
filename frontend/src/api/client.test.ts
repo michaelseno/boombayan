@@ -53,4 +53,15 @@ describe('apiFetch', () => {
       'API request to /me failed with status 404',
     )
   })
+
+  it('throws the backend-provided detail message when present', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ detail: 'Member not found' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(apiFetch('/members/123', 'fake-id-token')).rejects.toThrow('Member not found')
+  })
 })

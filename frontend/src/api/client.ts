@@ -20,7 +20,8 @@ export async function apiFetch<T>(
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   })
   if (!response.ok) {
-    throw new Error(`API request to ${path} failed with status ${response.status}`)
+    const body = await response.json().catch(() => ({}))
+    throw new Error(body.detail ?? `API request to ${path} failed with status ${response.status}`)
   }
   return response.json() as Promise<T>
 }
