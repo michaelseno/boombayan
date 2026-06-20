@@ -40,8 +40,8 @@ export function MemberDetailPage() {
       })
       setMember(updated)
       setSharesToPurchase('')
-    } catch {
-      setPurchaseError('Could not record the share purchase.')
+    } catch (err) {
+      setPurchaseError(err instanceof Error ? err.message : 'Could not record the share purchase.')
     } finally {
       setIsSubmittingPurchase(false)
     }

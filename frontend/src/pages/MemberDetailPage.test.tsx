@@ -171,6 +171,6 @@ describe('MemberDetailPage', () => {
     fireEvent.change(screen.getByLabelText('Shares to purchase'), { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Purchase' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not record the share purchase.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('boom')
   })
 })
