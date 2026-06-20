@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 
@@ -41,6 +42,10 @@ export function DashboardPage() {
     <div>
       <h1>Welcome, {user.email}</h1>
       <p>{user.is_administrator ? 'Administrator' : 'Board Member'}</p>
+      <nav>
+        <Link to="/members">Members</Link>
+        {user.is_administrator && <Link to="/settings">Settings</Link>}
+      </nav>
       <button onClick={logout}>Log out</button>
     </div>
   )

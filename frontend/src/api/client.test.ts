@@ -6,7 +6,7 @@ describe('apiFetch', () => {
     vi.unstubAllGlobals()
   })
 
-  it('sends the bearer token and returns parsed JSON on success', async () => {
+  it('sends the bearer token and returns parsed JSON on a default GET request', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -18,7 +18,30 @@ describe('apiFetch', () => {
 
     expect(result).toEqual({ user_id: 'abc123' })
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/me'), {
+      method: 'GET',
       headers: { Authorization: 'Bearer fake-id-token' },
+      body: undefined,
+    })
+  })
+
+  it('sends a JSON body and Content-Type header for POST requests', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ member_id: 'mem-1' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await apiFetch<{ member_id: string }>('/members', 'fake-id-token', {
+      method: 'POST',
+      body: { first_name: 'Ana' },
+    })
+
+    expect(result).toEqual({ member_id: 'mem-1' })
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/members'), {
+      method: 'POST',
+      headers: { Authorization: 'Bearer fake-id-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ first_name: 'Ana' }),
     })
   })
 
@@ -31,14 +54,29 @@ describe('apiFetch', () => {
     )
   })
 
-  it('throws the backend detail message when present', async () => {
+  it('throws the backend-provided detail message when present', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
-      json: async () => ({ detail: 'User not found' }),
+      json: async () => ({ detail: 'Member not found' }),
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(apiFetch('/me', 'fake-id-token')).rejects.toThrow('User not found')
+    await expect(apiFetch('/members/123', 'fake-id-token')).rejects.toThrow('Member not found')
+  })
+
+  it('resolves to undefined instead of throwing on a 204 No Content success response', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      json: async () => {
+        throw new Error('no body')
+      },
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await apiFetch('/members/123', 'fake-id-token', { method: 'DELETE' })
+
+    expect(result).toBeUndefined()
   })
 })

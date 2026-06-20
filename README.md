@@ -75,9 +75,18 @@ cd backend && pytest
 cd frontend && npm run test
 ```
 
+## Configuring share value and the share cap
+
+Before any shares can be purchased, an administrator must set the share
+value and the per-member share cap from the Settings page (`/settings`,
+linked from the dashboard for administrators only). Purchasing shares
+before this is configured fails with "Could not record the share
+purchase." (the API's underlying error is "Share value has not been
+configured yet.").
+
 ## What's not here yet
 
-This is Plan 1 of a multi-plan project — auth and the board-member dashboard
-shell only. Member management, the loan lifecycle, payments/penalties, and
-cycle/dividend processing are designed but not yet built; see
-`docs/superpowers/plans/` for the phase breakdown.
+This is Plan 2 of a multi-plan project — auth, dashboard shell, and member/
+share management. The loan lifecycle, payments/penalties, and cycle/dividend
+processing are designed but not yet built; see `docs/superpowers/plans/` for
+the phase breakdown.
