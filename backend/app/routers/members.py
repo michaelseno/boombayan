@@ -4,8 +4,15 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import get_current_user, require_admin
-from ..db import get_member_by_id, list_members, put_member
-from ..models.member import CreateMemberRequest, Member, MemberStatus, UpdateMemberRequest
+from ..db import get_config, get_member_by_id, list_members, put_member
+from ..models.member import (
+    CreateMemberRequest,
+    Member,
+    MemberStatus,
+    PurchaseSharesRequest,
+    ShareHistoryEntry,
+    UpdateMemberRequest,
+)
 from ..models.user import User
 
 router = APIRouter()
@@ -56,5 +63,40 @@ def update_member(
         member.phone = body.phone
     if body.status is not None:
         member.status = body.status
+    put_member(member)
+    return member
+
+
+@router.post("/members/{member_id}/shares", response_model=Member)
+def purchase_shares(
+    member_id: str, body: PurchaseSharesRequest, user: User = Depends(require_admin)
+) -> Member:
+    member = get_member_by_id(member_id)
+    if member is None:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    config = get_config()
+    if config.share_value <= 0:
+        raise HTTPException(status_code=400, detail="Share value has not been configured yet")
+
+    new_total_shares = member.current_shares + body.shares_purchased
+    if new_total_shares > config.max_shares_per_member:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Purchase would exceed the maximum of {config.max_shares_per_member} shares per member",
+        )
+
+    amount_paid = body.shares_purchased * config.share_value
+    member.share_history.append(
+        ShareHistoryEntry(
+            cycle_id=None,
+            shares_purchased=body.shares_purchased,
+            share_value_at_purchase=config.share_value,
+            amount_paid=amount_paid,
+            date=date.today().isoformat(),
+        )
+    )
+    member.current_shares = new_total_shares
+    member.current_capital_amount += amount_paid
     put_member(member)
     return member
