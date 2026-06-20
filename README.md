@@ -25,6 +25,10 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
+If `pip install` doesn't seem to land in the venv (check with `which pip`
+after activating), some shells alias `pip`/`python` past the venv — use
+`.venv/bin/pip install -r requirements-dev.txt` instead.
+
 ## Frontend setup
 
 ```bash
@@ -59,9 +63,21 @@ AWS_REGION=us-east-1 \
 .venv/bin/python -m scripts.seed_admin --email <board-member-email> --temporary-password '<temporary-password>'
 ```
 
+`USERS_TABLE` follows `<service>-<stage>-users` (`boombayan-api-dev-users` is
+the default `dev` stage) and `AWS_REGION` must match the region you actually
+deployed to (`region` in `infra/serverless.yml`) — if you deploy with a
+different `--stage` or region, substitute accordingly.
+
 ## Running tests
 
 ```bash
 cd backend && pytest
 cd frontend && npm run test
 ```
+
+## What's not here yet
+
+This is Plan 1 of a multi-plan project — auth and the board-member dashboard
+shell only. Member management, the loan lifecycle, payments/penalties, and
+cycle/dividend processing are designed but not yet built; see
+`docs/superpowers/plans/` for the phase breakdown.
