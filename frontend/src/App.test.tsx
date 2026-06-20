@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import App from './App'
 
 describe('App', () => {
-  it('renders the app name', () => {
+  it('redirects an unauthenticated visitor to the login page', () => {
     render(<App />)
     expect(screen.getByText('Boombayan LMS')).toBeInTheDocument()
   })
