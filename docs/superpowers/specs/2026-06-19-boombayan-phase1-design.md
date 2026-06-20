@@ -16,7 +16,7 @@ This document translates the BRD's business rules into a concrete technical desi
 | Database | Amazon DynamoDB | Builder's prior experience; reporting trade-offs mitigated by a custom reporting module (see §8) instead of a data-lake pipeline |
 | IaC | Serverless Framework | Builder's explicit choice; mature Lambda/API Gateway tooling |
 | Frontend | React + Vite + TypeScript, single-page app, hosted as static files on S3 + CloudFront | No SSR/SEO need (internal, auth-gated dashboard); simplest static deploy |
-| Auth | Amazon Cognito (User Pools), integrated with API Gateway authorizers | Offloads password hashing/reset/MFA; less custom security code to maintain solo |
+| Auth | Amazon Cognito (User Pools); JWTs verified inside the FastAPI app (PyJWT against Cognito's JWKS endpoint), not a native API Gateway JWT authorizer | Offloads password hashing/reset/MFA; less custom security code to maintain solo. App-level verification (not an API Gateway authorizer) was the actual Phase 1 implementation choice — keeps auth testable/portable and was needed anyway since this Lambda's `$default` catch-all route handles its own CORS via FastAPI middleware |
 | Monitoring | CloudWatch (logs, metrics) | Native to the stack |
 | Repo | Monorepo: `backend/`, `frontend/`, `infra/` | Builder's explicit choice |
 
