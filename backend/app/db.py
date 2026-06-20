@@ -1,6 +1,9 @@
+from decimal import Decimal
+
 import boto3
 
 from .config import settings
+from .models.member import Member, MemberStatus, ShareHistoryEntry
 from .models.user import User
 
 
@@ -16,6 +19,10 @@ def get_users_table():
 
 def get_config_table():
     return _dynamodb().Table(settings.config_table)
+
+
+def get_members_table():
+    return _dynamodb().Table(settings.members_table)
 
 
 def get_user_by_id(user_id: str) -> User | None:
@@ -40,3 +47,72 @@ def put_user(user: User) -> None:
     if user.member_id is not None:
         item["MemberId"] = user.member_id
     get_users_table().put_item(Item=item)
+
+
+def _share_history_from_items(items: list[dict]) -> list[ShareHistoryEntry]:
+    return [
+        ShareHistoryEntry(
+            cycle_id=entry.get("CycleId"),
+            shares_purchased=int(entry["SharesPurchased"]),
+            share_value_at_purchase=float(entry["ShareValueAtPurchase"]),
+            amount_paid=float(entry["AmountPaid"]),
+            date=entry["Date"],
+        )
+        for entry in items
+    ]
+
+
+def _member_from_item(item: dict) -> Member:
+    return Member(
+        member_id=item["MemberId"],
+        first_name=item["FirstName"],
+        last_name=item["LastName"],
+        email=item["Email"],
+        phone=item["Phone"],
+        date_joined=item["DateJoined"],
+        status=MemberStatus(item["Status"]),
+        current_shares=int(item["CurrentShares"]),
+        current_capital_amount=float(item["CurrentCapitalAmount"]),
+        share_history=_share_history_from_items(item.get("ShareHistory", [])),
+    )
+
+
+def _item_from_member(member: Member) -> dict:
+    return {
+        "MemberId": member.member_id,
+        "FirstName": member.first_name,
+        "LastName": member.last_name,
+        "Email": member.email,
+        "Phone": member.phone,
+        "DateJoined": member.date_joined,
+        "Status": member.status.value,
+        "CurrentShares": member.current_shares,
+        "CurrentCapitalAmount": Decimal(str(member.current_capital_amount)),
+        "ShareHistory": [
+            {
+                "CycleId": entry.cycle_id,
+                "SharesPurchased": entry.shares_purchased,
+                "ShareValueAtPurchase": Decimal(str(entry.share_value_at_purchase)),
+                "AmountPaid": Decimal(str(entry.amount_paid)),
+                "Date": entry.date,
+            }
+            for entry in member.share_history
+        ],
+    }
+
+
+def get_member_by_id(member_id: str) -> Member | None:
+    response = get_members_table().get_item(Key={"MemberId": member_id})
+    item = response.get("Item")
+    if item is None:
+        return None
+    return _member_from_item(item)
+
+
+def put_member(member: Member) -> None:
+    get_members_table().put_item(Item=_item_from_member(member))
+
+
+def list_members() -> list[Member]:
+    response = get_members_table().scan()
+    return [_member_from_item(item) for item in response["Items"]]
