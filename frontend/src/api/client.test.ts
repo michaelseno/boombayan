@@ -64,4 +64,19 @@ describe('apiFetch', () => {
 
     await expect(apiFetch('/members/123', 'fake-id-token')).rejects.toThrow('Member not found')
   })
+
+  it('resolves to undefined instead of throwing on a 204 No Content success response', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      json: async () => {
+        throw new Error('no body')
+      },
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await apiFetch('/members/123', 'fake-id-token', { method: 'DELETE' })
+
+    expect(result).toBeUndefined()
+  })
 })

@@ -1,7 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 export interface ApiFetchOptions {
-  method?: string
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
 }
 
@@ -23,5 +23,8 @@ export async function apiFetch<T>(
     const body = await response.json().catch(() => ({}))
     throw new Error(body.detail ?? `API request to ${path} failed with status ${response.status}`)
   }
-  return response.json() as Promise<T>
+  if (response.status === 204) {
+    return undefined as T
+  }
+  return response.json().catch(() => undefined as T)
 }
