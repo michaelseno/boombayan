@@ -107,3 +107,53 @@ def test_get_member_returns_404_when_missing(client, dynamodb_users_table, dynam
     response = client.get("/members/does-not-exist")
 
     assert response.status_code == 404
+
+
+def test_update_member_succeeds_for_administrator(client, dynamodb_users_table, dynamodb_members_table):
+    from app.db import put_member
+    from app.models.member import Member
+
+    put_member(
+        Member(
+            member_id="mem-1", first_name="Ana", last_name="Reyes",
+            email="ana@example.com", phone="1", date_joined="2026-01-15",
+        )
+    )
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    response = client.put("/members/mem-1", json={"status": "Withdrawn"})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "Withdrawn"
+    assert response.json()["first_name"] == "Ana"
+
+
+def test_update_member_rejected_for_non_administrator(client, dynamodb_users_table, dynamodb_members_table):
+    from app.db import put_member
+    from app.models.member import Member
+
+    put_member(
+        Member(
+            member_id="mem-1", first_name="Ana", last_name="Reyes",
+            email="ana@example.com", phone="1", date_joined="2026-01-15",
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.put("/members/mem-1", json={"status": "Withdrawn"})
+
+    assert response.status_code == 403
+
+
+def test_update_member_returns_404_when_missing(client, dynamodb_users_table, dynamodb_members_table):
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    response = client.put("/members/does-not-exist", json={"status": "Withdrawn"})
+
+    assert response.status_code == 404
