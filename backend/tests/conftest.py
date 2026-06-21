@@ -72,3 +72,20 @@ def dynamodb_config_table(monkeypatch):
             BillingMode="PAY_PER_REQUEST",
         )
         yield
+
+
+@pytest.fixture
+def dynamodb_loans_table(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "loans_table", "test-loans")
+
+    with mock_aws():
+        dynamo_client = boto3.client("dynamodb", region_name="us-east-1")
+        dynamo_client.create_table(
+            TableName="test-loans",
+            AttributeDefinitions=[{"AttributeName": "LoanId", "AttributeType": "S"}],
+            KeySchema=[{"AttributeName": "LoanId", "KeyType": "HASH"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        yield

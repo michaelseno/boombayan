@@ -125,3 +125,85 @@ def test_put_and_get_config_roundtrip(dynamodb_config_table):
     put_config(config)
 
     assert get_config() == config
+
+
+def test_list_users_returns_all_users(dynamodb_users_table):
+    from app.db import list_users, put_user
+    from app.models.user import User
+
+    put_user(User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True))
+    put_user(User(user_id="board-1", email="board@boombayan.org", is_administrator=False))
+
+    users = list_users()
+    assert {u.user_id for u in users} == {"admin-1", "board-1"}
+
+
+def test_put_and_get_loan_roundtrip(dynamodb_loans_table):
+    from app.db import get_loan_by_id, put_loan
+    from app.models.loan import ApprovalEntry, Loan
+
+    loan = Loan(
+        loan_id="loan-1",
+        member_id="mem-1",
+        requested_amount=10000,
+        repayment_interval_days=30,
+        interest_rate=0.05,
+        application_date="2026-06-21",
+        approvals={"admin-1": ApprovalEntry(email="admin@boombayan.org")},
+    )
+    put_loan(loan)
+
+    fetched = get_loan_by_id("loan-1")
+    assert fetched == loan
+
+
+def test_get_loan_by_id_returns_none_when_missing(dynamodb_loans_table):
+    from app.db import get_loan_by_id
+
+    assert get_loan_by_id("does-not-exist") is None
+
+
+def test_list_loans_returns_all_loans(dynamodb_loans_table):
+    from app.db import list_loans, put_loan
+    from app.models.loan import Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        )
+    )
+    put_loan(
+        Loan(
+            loan_id="loan-2", member_id="mem-2", requested_amount=5000,
+            repayment_interval_days=15, interest_rate=0.05, application_date="2026-06-22",
+        )
+    )
+
+    loans = list_loans()
+    assert {loan.loan_id for loan in loans} == {"loan-1", "loan-2"}
+
+
+def test_put_loan_persists_release_fields(dynamodb_loans_table):
+    from app.db import get_loan_by_id, put_loan
+    from app.models.loan import Loan, LoanStatus
+
+    loan = Loan(
+        loan_id="loan-1",
+        member_id="mem-1",
+        requested_amount=10000,
+        approved_amount=10000,
+        repayment_interval_days=30,
+        interest_rate=0.05,
+        application_date="2026-06-21",
+        status=LoanStatus.ACTIVE,
+        release_date="2026-06-22",
+        interest_deduction=500,
+        net_release_amount=9500,
+        remaining_balance=10000,
+        next_due_date="2026-07-22",
+    )
+    put_loan(loan)
+
+    fetched = get_loan_by_id("loan-1")
+    assert fetched == loan
