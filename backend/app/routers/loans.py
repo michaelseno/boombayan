@@ -1,11 +1,19 @@
-from datetime import date
+from datetime import date, timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import get_current_user, require_admin
 from ..db import get_config, get_loan_by_id, get_member_by_id, list_loans, list_users, put_loan
-from ..models.loan import ApprovalEntry, ApprovalVoteStatus, CastVoteRequest, CreateLoanRequest, Loan, LoanStatus
+from ..models.loan import (
+    ApprovalEntry,
+    ApprovalVoteStatus,
+    CastVoteRequest,
+    CreateLoanRequest,
+    Loan,
+    LoanStatus,
+    ReleaseLoanRequest,
+)
 from ..models.member import MemberStatus
 from ..models.user import User
 
@@ -86,5 +94,27 @@ def cast_vote(loan_id: str, body: CastVoteRequest, user: User = Depends(get_curr
         loan.status = LoanStatus.APPROVED
         loan.approved_amount = loan.requested_amount
 
+    put_loan(loan)
+    return loan
+
+
+@router.post("/loans/{loan_id}/release", response_model=Loan)
+def release_loan(loan_id: str, body: ReleaseLoanRequest, user: User = Depends(require_admin)) -> Loan:
+    loan = get_loan_by_id(loan_id)
+    if loan is None:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    if loan.status != LoanStatus.APPROVED:
+        raise HTTPException(status_code=400, detail="Only an approved loan can be released")
+
+    release_date = body.release_date or date.today().isoformat()
+    interest_deduction = loan.approved_amount * loan.interest_rate
+    loan.release_date = release_date
+    loan.interest_deduction = interest_deduction
+    loan.net_release_amount = loan.approved_amount - interest_deduction
+    loan.remaining_balance = loan.approved_amount
+    loan.next_due_date = (
+        date.fromisoformat(release_date) + timedelta(days=loan.repayment_interval_days)
+    ).isoformat()
+    loan.status = LoanStatus.ACTIVE
     put_loan(loan)
     return loan

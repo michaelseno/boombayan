@@ -444,3 +444,110 @@ def test_cast_vote_returns_404_when_loan_missing(
     response = client.post("/loans/does-not-exist/approvals", json={"status": "Approved"})
 
     assert response.status_code == 404
+
+
+def test_release_loan_computes_interest_and_balance(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import Loan, LoanStatus
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000, approved_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            status=LoanStatus.APPROVED,
+        )
+    )
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    response = client.post("/loans/loan-1/release", json={"release_date": "2026-06-22"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "Active"
+    assert body["release_date"] == "2026-06-22"
+    assert body["interest_deduction"] == 500
+    assert body["net_release_amount"] == 9500
+    assert body["remaining_balance"] == 10000
+    assert body["next_due_date"] == "2026-07-22"
+
+
+def test_release_loan_defaults_release_date_to_today(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import Loan, LoanStatus
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000, approved_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            status=LoanStatus.APPROVED,
+        )
+    )
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    response = client.post("/loans/loan-1/release", json={})
+
+    assert response.status_code == 200
+    assert response.json()["release_date"]
+
+
+def test_release_loan_rejects_when_not_approved(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        )
+    )
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    response = client.post("/loans/loan-1/release", json={})
+
+    assert response.status_code == 400
+
+
+def test_release_loan_rejected_for_non_administrator(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import Loan, LoanStatus
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000, approved_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            status=LoanStatus.APPROVED,
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/loan-1/release", json={})
+
+    assert response.status_code == 403
+
+
+def test_release_loan_returns_404_when_missing(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    response = client.post("/loans/does-not-exist/release", json={})
+
+    assert response.status_code == 404
