@@ -20,5 +20,7 @@ def update_config(body: UpdateConfigRequest, user: User = Depends(require_admin)
         config.share_value = body.share_value
     if body.max_shares_per_member is not None:
         config.max_shares_per_member = body.max_shares_per_member
+    if body.default_interest_rate is not None:
+        config.default_interest_rate = body.default_interest_rate
     put_config(config)
     return config

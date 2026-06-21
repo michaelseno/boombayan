@@ -8,6 +8,7 @@ export function SettingsPage() {
   const [config, setConfig] = useState<Config | null>(null)
   const [shareValue, setShareValue] = useState('')
   const [maxShares, setMaxShares] = useState('')
+  const [defaultInterestRate, setDefaultInterestRate] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -21,6 +22,7 @@ export function SettingsPage() {
         setConfig(data)
         setShareValue(String(data.share_value))
         setMaxShares(String(data.max_shares_per_member))
+        setDefaultInterestRate(String(data.default_interest_rate))
       })
       .catch(() => {
         if (!cancelled) setError('Could not load settings.')
@@ -38,7 +40,11 @@ export function SettingsPage() {
     try {
       const updated = await apiFetch<Config>('/config', idToken, {
         method: 'PUT',
-        body: { share_value: Number(shareValue), max_shares_per_member: Number(maxShares) },
+        body: {
+          share_value: Number(shareValue),
+          max_shares_per_member: Number(maxShares),
+          default_interest_rate: Number(defaultInterestRate),
+        },
       })
       setConfig(updated)
       setSaved(true)
@@ -73,6 +79,15 @@ export function SettingsPage() {
           type="number"
           value={maxShares}
           onChange={(e) => setMaxShares(e.target.value)}
+          required
+        />
+        <label htmlFor="default-interest-rate">Default interest rate</label>
+        <input
+          id="default-interest-rate"
+          type="number"
+          step="0.01"
+          value={defaultInterestRate}
+          onChange={(e) => setDefaultInterestRate(e.target.value)}
           required
         />
         {saveError && <p role="alert">{saveError}</p>}
