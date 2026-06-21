@@ -130,6 +130,7 @@ def get_config() -> Config:
     return Config(
         share_value=float(item.get("ShareValue", 0)),
         max_shares_per_member=int(item.get("MaxSharesPerMember", 5)),
+        default_interest_rate=float(item.get("DefaultInterestRate", 0)),
     )
 
 
@@ -141,5 +142,6 @@ def put_config(config: Config) -> None:
             "ConfigKey": CONFIG_KEY,
             "ShareValue": Decimal(str(config.share_value)),
             "MaxSharesPerMember": config.max_shares_per_member,
+            "DefaultInterestRate": Decimal(str(config.default_interest_rate)),
         }
     )
