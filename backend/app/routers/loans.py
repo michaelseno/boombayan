@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import get_current_user, require_admin
 from ..db import get_config, get_loan_by_id, get_member_by_id, list_loans, list_users, put_loan
-from ..models.loan import ApprovalEntry, ApprovalVoteStatus, CreateLoanRequest, Loan, LoanStatus
+from ..models.loan import ApprovalEntry, ApprovalVoteStatus, CastVoteRequest, CreateLoanRequest, Loan, LoanStatus
 from ..models.member import MemberStatus
 from ..models.user import User
 
@@ -60,4 +60,31 @@ def get_loan(loan_id: str, user: User = Depends(get_current_user)) -> Loan:
     loan = get_loan_by_id(loan_id)
     if loan is None:
         raise HTTPException(status_code=404, detail="Loan not found")
+    return loan
+
+
+@router.post("/loans/{loan_id}/approvals", response_model=Loan)
+def cast_vote(loan_id: str, body: CastVoteRequest, user: User = Depends(get_current_user)) -> Loan:
+    loan = get_loan_by_id(loan_id)
+    if loan is None:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    if loan.status != LoanStatus.PENDING_BOARD_APPROVAL:
+        raise HTTPException(status_code=400, detail="This loan is no longer pending board approval")
+    entry = loan.approvals.get(user.user_id)
+    if entry is None:
+        raise HTTPException(status_code=403, detail="You are not eligible to vote on this loan")
+    if entry.status != ApprovalVoteStatus.PENDING:
+        raise HTTPException(status_code=400, detail="You have already voted on this loan")
+
+    entry.status = body.status
+    entry.date = date.today().isoformat()
+    entry.comments = body.comments
+
+    if body.status == ApprovalVoteStatus.REJECTED:
+        loan.status = LoanStatus.REJECTED
+    elif all(e.status == ApprovalVoteStatus.APPROVED for e in loan.approvals.values()):
+        loan.status = LoanStatus.APPROVED
+        loan.approved_amount = loan.requested_amount
+
+    put_loan(loan)
     return loan

@@ -257,3 +257,190 @@ def test_get_loan_returns_404_when_missing(
     response = client.get("/loans/does-not-exist")
 
     assert response.status_code == 404
+
+
+def test_cast_vote_records_approval(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import ApprovalEntry, Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            approvals={
+                "admin-1": ApprovalEntry(email="admin@boombayan.org"),
+                "board-1": ApprovalEntry(email="board@boombayan.org"),
+            },
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/loan-1/approvals", json={"status": "Approved", "comments": "Looks good"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["approvals"]["board-1"]["status"] == "Approved"
+    assert body["approvals"]["board-1"]["comments"] == "Looks good"
+    assert body["approvals"]["board-1"]["date"]
+    assert body["status"] == "Pending Board Approval"
+
+
+def test_cast_vote_completing_unanimous_approval_sets_status_approved_and_approved_amount(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import ApprovalEntry, ApprovalVoteStatus, Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            approvals={
+                "admin-1": ApprovalEntry(email="admin@boombayan.org", status=ApprovalVoteStatus.APPROVED),
+                "board-1": ApprovalEntry(email="board@boombayan.org"),
+            },
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/loan-1/approvals", json={"status": "Approved"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "Approved"
+    assert body["approved_amount"] == 10000
+
+
+def test_cast_vote_rejection_sets_status_rejected(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import ApprovalEntry, Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            approvals={
+                "admin-1": ApprovalEntry(email="admin@boombayan.org"),
+                "board-1": ApprovalEntry(email="board@boombayan.org"),
+            },
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/loan-1/approvals", json={"status": "Rejected", "comments": "Too risky"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "Rejected"
+    assert body["approvals"]["admin-1"]["status"] == "Pending"
+
+
+def test_cast_vote_rejects_voting_twice(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import ApprovalEntry, ApprovalVoteStatus, Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            approvals={"board-1": ApprovalEntry(email="board@boombayan.org", status=ApprovalVoteStatus.APPROVED)},
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/loan-1/approvals", json={"status": "Approved"})
+
+    assert response.status_code == 400
+
+
+def test_cast_vote_rejects_when_loan_not_pending(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import ApprovalEntry, Loan, LoanStatus
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            status=LoanStatus.REJECTED,
+            approvals={"board-1": ApprovalEntry(email="board@boombayan.org")},
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/loan-1/approvals", json={"status": "Approved"})
+
+    assert response.status_code == 400
+
+
+def test_cast_vote_rejects_for_user_not_in_approvals(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import ApprovalEntry, Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            approvals={"admin-1": ApprovalEntry(email="admin@boombayan.org")},
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/loan-1/approvals", json={"status": "Approved"})
+
+    assert response.status_code == 403
+
+
+def test_cast_vote_rejects_pending_as_a_status_value(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import ApprovalEntry, Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            approvals={"board-1": ApprovalEntry(email="board@boombayan.org")},
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/loan-1/approvals", json={"status": "Pending"})
+
+    assert response.status_code == 422
+
+
+def test_cast_vote_returns_404_when_loan_missing(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.post("/loans/does-not-exist/approvals", json={"status": "Approved"})
+
+    assert response.status_code == 404
