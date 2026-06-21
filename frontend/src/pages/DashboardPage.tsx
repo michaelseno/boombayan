@@ -44,6 +44,7 @@ export function DashboardPage() {
       <p>{user.is_administrator ? 'Administrator' : 'Board Member'}</p>
       <nav>
         <Link to="/members">Members</Link>
+        <Link to="/loans">Loans</Link>
         {user.is_administrator && <Link to="/settings">Settings</Link>}
       </nav>
       <button onClick={logout}>Log out</button>
