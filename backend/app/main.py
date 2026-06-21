@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import config, health, members, users
+from .routers import config, health, loans, members, users
 
 
 def _parse_allowed_origins(value: str) -> list[str]:
@@ -33,3 +33,4 @@ app.include_router(health.router)
 app.include_router(users.router)
 app.include_router(members.router)
 app.include_router(config.router)
+app.include_router(loans.router)
