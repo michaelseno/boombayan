@@ -144,3 +144,116 @@ def test_create_loan_rejects_non_positive_requested_amount(
     )
 
     assert response.status_code == 422
+
+
+def test_list_loans_returns_all_loans_for_any_authenticated_user(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/loans")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+
+def test_list_loans_filters_by_member_id(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        )
+    )
+    put_loan(
+        Loan(
+            loan_id="loan-2", member_id="mem-2", requested_amount=5000,
+            repayment_interval_days=15, interest_rate=0.05, application_date="2026-06-22",
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/loans", params={"member_id": "mem-2"})
+
+    assert response.status_code == 200
+    assert [loan["loan_id"] for loan in response.json()] == ["loan-2"]
+
+
+def test_list_loans_filters_by_status(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import Loan, LoanStatus
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+            status=LoanStatus.REJECTED,
+        )
+    )
+    put_loan(
+        Loan(
+            loan_id="loan-2", member_id="mem-2", requested_amount=5000,
+            repayment_interval_days=15, interest_rate=0.05, application_date="2026-06-22",
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/loans", params={"status": "Rejected"})
+
+    assert response.status_code == 200
+    assert [loan["loan_id"] for loan in response.json()] == ["loan-1"]
+
+
+def test_get_loan_returns_loan_for_any_authenticated_user(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    from app.db import put_loan
+    from app.models.loan import Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        )
+    )
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/loans/loan-1")
+
+    assert response.status_code == 200
+    assert response.json()["member_id"] == "mem-1"
+
+
+def test_get_loan_returns_404_when_missing(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_loans_table
+):
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/loans/does-not-exist")
+
+    assert response.status_code == 404

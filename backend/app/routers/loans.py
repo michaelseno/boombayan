@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import get_current_user, require_admin
-from ..db import get_config, get_member_by_id, list_users, put_loan
+from ..db import get_config, get_loan_by_id, get_member_by_id, list_loans, list_users, put_loan
 from ..models.loan import ApprovalEntry, ApprovalVoteStatus, CreateLoanRequest, Loan, LoanStatus
 from ..models.member import MemberStatus
 from ..models.user import User
@@ -38,4 +38,26 @@ def create_loan(body: CreateLoanRequest, user: User = Depends(require_admin)) ->
         },
     )
     put_loan(loan)
+    return loan
+
+
+@router.get("/loans", response_model=list[Loan])
+def get_loans(
+    member_id: str | None = None,
+    status: LoanStatus | None = None,
+    user: User = Depends(get_current_user),
+) -> list[Loan]:
+    loans = list_loans()
+    if member_id is not None:
+        loans = [loan for loan in loans if loan.member_id == member_id]
+    if status is not None:
+        loans = [loan for loan in loans if loan.status == status]
+    return loans
+
+
+@router.get("/loans/{loan_id}", response_model=Loan)
+def get_loan(loan_id: str, user: User = Depends(get_current_user)) -> Loan:
+    loan = get_loan_by_id(loan_id)
+    if loan is None:
+        raise HTTPException(status_code=404, detail="Loan not found")
     return loan
