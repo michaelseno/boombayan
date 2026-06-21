@@ -84,9 +84,21 @@ before this is configured fails with "Could not record the share
 purchase." (the API's underlying error is "Share value has not been
 configured yet.").
 
+## Applying for, approving, and releasing a loan
+
+An administrator creates a loan application from a member's behalf
+(`/loans/new`), picking the member and entering the requested amount and
+repayment interval. The application snapshots the current default interest
+rate from Settings and goes straight to board review — every current User
+gets a vote. Any authenticated User can approve or reject from the loan's
+detail page (`/loans/:loanId`); a single rejection ends the round, and the
+loan only reaches `Approved` once every User has approved. Once approved,
+an administrator releases it (computing the interest deduction, net release
+amount, and first due date) from the same page, moving it to `Active`.
+
 ## What's not here yet
 
-This is Plan 2 of a multi-plan project — auth, dashboard shell, and member/
-share management. The loan lifecycle, payments/penalties, and cycle/dividend
-processing are designed but not yet built; see `docs/superpowers/plans/` for
-the phase breakdown.
+This is Plan 3 of a multi-plan project — auth, dashboard shell, member/share
+management, and the loan lifecycle (application through release). Payment
+recording, the penalty engine, and cycle/dividend processing are designed
+but not yet built; see `docs/superpowers/plans/` for the phase breakdown.
