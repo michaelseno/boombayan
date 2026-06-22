@@ -163,3 +163,45 @@ def test_record_payment_rejects_non_positive_amount(
     response = client.post("/loans/loan-1/payments", json={"amount": 0})
 
     assert response.status_code == 422
+
+
+def test_list_transactions_returns_empty_list_for_loan_with_no_payments(
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table
+):
+    _put_active_loan()
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/loans/loan-1/transactions")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_transactions_returns_404_when_loan_missing(
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table
+):
+    board_member = User(user_id="board-1", email="board@boombayan.org", is_administrator=False)
+    put_user(board_member)
+    app.dependency_overrides[get_current_user_id] = lambda: "board-1"
+
+    response = client.get("/loans/does-not-exist/transactions")
+
+    assert response.status_code == 404
+
+
+def test_list_transactions_returns_oldest_first(
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table
+):
+    _put_active_loan(remaining_balance=10000.0)
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    client.post("/loans/loan-1/payments", json={"amount": 1000})
+    client.post("/loans/loan-1/payments", json={"amount": 2000})
+
+    response = client.get("/loans/loan-1/transactions")
+    amounts = [t["amount"] for t in response.json()]
+    assert amounts == [1000, 2000]

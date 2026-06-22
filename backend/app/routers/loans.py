@@ -9,6 +9,7 @@ from ..db import (
     get_loan_by_id,
     get_member_by_id,
     list_loans,
+    list_transactions_for_loan,
     list_users,
     put_loan,
     put_transaction,
@@ -163,3 +164,11 @@ def record_payment(loan_id: str, body: CreatePaymentRequest, user: User = Depend
         )
     )
     return loan
+
+
+@router.get("/loans/{loan_id}/transactions", response_model=list[Transaction])
+def get_loan_transactions(loan_id: str, user: User = Depends(get_current_user)) -> list[Transaction]:
+    loan = get_loan_by_id(loan_id)
+    if loan is None:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    return list_transactions_for_loan(loan_id)
