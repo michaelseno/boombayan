@@ -213,3 +213,72 @@ def test_put_loan_persists_release_fields(dynamodb_loans_table):
 
     fetched = get_loan_by_id("loan-1")
     assert fetched == loan
+
+
+def test_put_and_get_loan_persists_penalty_charged_flag_and_completed_status(dynamodb_loans_table):
+    from app.db import get_loan_by_id, put_loan
+    from app.models.loan import Loan, LoanStatus
+
+    loan = Loan(
+        loan_id="loan-1",
+        member_id="mem-1",
+        requested_amount=10000,
+        approved_amount=10000,
+        repayment_interval_days=30,
+        interest_rate=0.05,
+        application_date="2026-06-21",
+        status=LoanStatus.COMPLETED,
+        release_date="2026-06-21",
+        interest_deduction=500,
+        net_release_amount=9500,
+        remaining_balance=0,
+        next_due_date="2026-07-21",
+        penalty_charged_for_current_cycle=True,
+    )
+    put_loan(loan)
+
+    fetched = get_loan_by_id("loan-1")
+    assert fetched == loan
+
+
+def test_put_and_get_transaction_roundtrip(dynamodb_transactions_table):
+    from app.db import get_transactions_table, put_transaction
+    from app.models.transaction import Transaction, TransactionType
+
+    transaction = Transaction(
+        transaction_id="txn-1",
+        loan_id="loan-1",
+        timestamp="2026-07-21T10:00:00+00:00",
+        type=TransactionType.PAYMENT,
+        amount=3000,
+        remaining_balance_after=7000,
+        recorded_by="admin-1",
+        notes="First installment",
+    )
+    put_transaction(transaction)
+
+    response = get_transactions_table().get_item(
+        Key={"LoanId": "loan-1", "Timestamp": "2026-07-21T10:00:00+00:00"}
+    )
+    assert response["Item"]["TransactionId"] == "txn-1"
+
+
+def test_list_transactions_for_loan_returns_oldest_first(dynamodb_transactions_table):
+    from app.db import list_transactions_for_loan, put_transaction
+    from app.models.transaction import Transaction, TransactionType
+
+    put_transaction(
+        Transaction(
+            transaction_id="txn-2", loan_id="loan-1", timestamp="2026-07-21T12:00:00+00:00",
+            type=TransactionType.PAYMENT, amount=1000, remaining_balance_after=9000,
+        )
+    )
+    put_transaction(
+        Transaction(
+            transaction_id="txn-1", loan_id="loan-1", timestamp="2026-07-21T10:00:00+00:00",
+            type=TransactionType.PAYMENT, amount=1000, remaining_balance_after=8000,
+        )
+    )
+
+    transactions = list_transactions_for_loan("loan-1")
+    assert [t.transaction_id for t in transactions] == ["txn-1", "txn-2"]
