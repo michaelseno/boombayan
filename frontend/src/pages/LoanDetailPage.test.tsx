@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { apiFetch } from '../api/client'
+import type { Loan } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { LoanDetailPage } from './LoanDetailPage'
 
@@ -22,7 +23,7 @@ function renderAtLoan(loanId: string) {
   )
 }
 
-const pendingLoan = {
+const pendingLoan: Loan = {
   loan_id: 'loan-1',
   member_id: 'mem-1',
   requested_amount: 10000,
@@ -44,7 +45,7 @@ const pendingLoan = {
   },
 }
 
-const activeLoan = {
+const activeLoan: Loan = {
   ...pendingLoan,
   status: 'Active',
   approved_amount: 10000,
@@ -58,7 +59,7 @@ const activeLoan = {
 const boardUser = { user_id: 'board-1', email: 'board@boombayan.org', is_administrator: false, member_id: null }
 const adminUser = { user_id: 'admin-1', email: 'admin@boombayan.org', is_administrator: true, member_id: null }
 
-function mockLoanFetches(loan: typeof pendingLoan, user: typeof boardUser, transactions: unknown[] = []) {
+function mockLoanFetches(loan: Loan, user: typeof boardUser, transactions: unknown[] = []) {
   vi.mocked(apiFetch).mockImplementation((path) => {
     if (path === '/me') return Promise.resolve(user)
     if (path.endsWith('/transactions')) return Promise.resolve(transactions)
@@ -137,7 +138,7 @@ describe('LoanDetailPage', () => {
 
   it('hides the vote form when the current user has already voted', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
-    const alreadyVotedLoan = {
+    const alreadyVotedLoan: Loan = {
       ...pendingLoan,
       approvals: {
         'board-1': { email: 'board@boombayan.org', status: 'Approved', date: '2026-06-21', comments: null },
@@ -153,7 +154,7 @@ describe('LoanDetailPage', () => {
 
   it('shows a release form for administrators when the loan is approved, and submits it', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
-    const approvedLoan = { ...pendingLoan, status: 'Approved', approved_amount: 10000 }
+    const approvedLoan: Loan = { ...pendingLoan, status: 'Approved', approved_amount: 10000 }
     mockLoanFetches(approvedLoan, adminUser)
 
     renderAtLoan('loan-1')
@@ -174,7 +175,7 @@ describe('LoanDetailPage', () => {
 
   it('hides the release form for non-administrators', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
-    const approvedLoan = { ...pendingLoan, status: 'Approved', approved_amount: 10000 }
+    const approvedLoan: Loan = { ...pendingLoan, status: 'Approved', approved_amount: 10000 }
     mockLoanFetches(approvedLoan, boardUser)
 
     renderAtLoan('loan-1')
