@@ -25,9 +25,11 @@ export interface Config {
   share_value: number
   max_shares_per_member: number
   default_interest_rate: number
+  penalty_rate: number
+  penalty_grace_period_hours: number
 }
 
-export type LoanStatus = 'Pending Board Approval' | 'Approved' | 'Active' | 'Rejected'
+export type LoanStatus = 'Pending Board Approval' | 'Approved' | 'Active' | 'Rejected' | 'Completed'
 export type ApprovalVoteStatus = 'Pending' | 'Approved' | 'Rejected'
 
 export interface ApprovalEntry {
@@ -53,5 +55,19 @@ export interface Loan {
   net_release_amount: number | null
   remaining_balance: number | null
   next_due_date: string | null
+  penalty_charged_for_current_cycle: boolean
   approvals: Record<string, ApprovalEntry>
+}
+
+export type TransactionType = 'PAYMENT' | 'PENALTY'
+
+export interface Transaction {
+  transaction_id: string
+  loan_id: string
+  timestamp: string
+  type: TransactionType
+  amount: number
+  remaining_balance_after: number
+  recorded_by: string | null
+  notes: string | null
 }

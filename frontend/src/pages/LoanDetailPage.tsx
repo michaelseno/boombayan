@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { apiFetch } from '../api/client'
-import { ApprovalVoteStatus, Loan } from '../api/types'
+import { ApprovalVoteStatus, Loan, Transaction } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 
 interface CurrentUser {
@@ -16,20 +16,30 @@ export function LoanDetailPage() {
   const { idToken } = useAuth()
   const [loan, setLoan] = useState<Loan | null>(null)
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [error, setError] = useState<string | null>(null)
   const [comments, setComments] = useState('')
   const [voteError, setVoteError] = useState<string | null>(null)
   const [releaseDate, setReleaseDate] = useState('')
   const [releaseError, setReleaseError] = useState<string | null>(null)
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentDate, setPaymentDate] = useState('')
+  const [paymentNotes, setPaymentNotes] = useState('')
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!idToken || !loanId) return
     let cancelled = false
-    Promise.all([apiFetch<Loan>(`/loans/${loanId}`, idToken), apiFetch<CurrentUser>('/me', idToken)])
-      .then(([loanData, userData]) => {
+    Promise.all([
+      apiFetch<Loan>(`/loans/${loanId}`, idToken),
+      apiFetch<CurrentUser>('/me', idToken),
+      apiFetch<Transaction[]>(`/loans/${loanId}/transactions`, idToken),
+    ])
+      .then(([loanData, userData, transactionsData]) => {
         if (!cancelled) {
           setLoan(loanData)
           setCurrentUser(userData)
+          setTransactions(transactionsData)
         }
       })
       .catch(() => {
@@ -70,6 +80,26 @@ export function LoanDetailPage() {
     }
   }
 
+  async function handleRecordPayment(event: FormEvent) {
+    event.preventDefault()
+    if (!idToken || !loanId) return
+    setPaymentError(null)
+    try {
+      const updated = await apiFetch<Loan>(`/loans/${loanId}/payments`, idToken, {
+        method: 'POST',
+        body: { amount: Number(paymentAmount), payment_date: paymentDate || null, notes: paymentNotes || null },
+      })
+      setLoan(updated)
+      setPaymentAmount('')
+      setPaymentDate('')
+      setPaymentNotes('')
+      const updatedTransactions = await apiFetch<Transaction[]>(`/loans/${loanId}/transactions`, idToken)
+      setTransactions(updatedTransactions)
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Could not record this payment.')
+    }
+  }
+
   if (error) {
     return <p role="alert">{error}</p>
   }
@@ -81,6 +111,7 @@ export function LoanDetailPage() {
   const myApproval = loan.approvals[currentUser.user_id]
   const canVote = loan.status === 'Pending Board Approval' && myApproval?.status === 'Pending'
   const canRelease = currentUser.is_administrator && loan.status === 'Approved'
+  const canRecordPayment = currentUser.is_administrator && loan.status === 'Active'
 
   return (
     <div>
@@ -93,7 +124,7 @@ export function LoanDetailPage() {
       <p>Application date: {loan.application_date}</p>
       {loan.is_exception_case && <p>Exception case: requested amount exceeds the member&apos;s capital.</p>}
       {loan.remarks && <p>Remarks: {loan.remarks}</p>}
-      {loan.status === 'Active' && (
+      {(loan.status === 'Active' || loan.status === 'Completed') && (
         <div>
           <h2>Release details</h2>
           <p>Release date: {loan.release_date}</p>
@@ -151,6 +182,57 @@ export function LoanDetailPage() {
           <button type="submit">Release loan</button>
         </form>
       )}
+
+      {canRecordPayment && (
+        <form onSubmit={handleRecordPayment}>
+          <h2>Record a payment</h2>
+          <label htmlFor="payment-amount">Amount</label>
+          <input
+            id="payment-amount"
+            type="number"
+            value={paymentAmount}
+            onChange={(e) => setPaymentAmount(e.target.value)}
+            required
+          />
+          <label htmlFor="payment-date">Payment date</label>
+          <input
+            id="payment-date"
+            type="date"
+            value={paymentDate}
+            onChange={(e) => setPaymentDate(e.target.value)}
+          />
+          <label htmlFor="payment-notes">Notes</label>
+          <input id="payment-notes" value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} />
+          {paymentError && <p role="alert">{paymentError}</p>}
+          <button type="submit">Record payment</button>
+        </form>
+      )}
+
+      <h2>Transaction history</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Balance after</th>
+            <th>Date</th>
+            <th>Recorded by</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((transaction) => (
+            <tr key={transaction.transaction_id}>
+              <td>{transaction.type}</td>
+              <td>{transaction.amount}</td>
+              <td>{transaction.remaining_balance_after}</td>
+              <td>{transaction.timestamp}</td>
+              <td>{transaction.recorded_by ?? '-'}</td>
+              <td>{transaction.notes ?? '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
