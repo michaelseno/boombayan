@@ -1,20 +1,31 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import get_current_user, require_admin
-from ..db import get_config, get_loan_by_id, get_member_by_id, list_loans, list_users, put_loan
+from ..db import (
+    get_config,
+    get_loan_by_id,
+    get_member_by_id,
+    list_loans,
+    list_transactions_for_loan,
+    list_users,
+    put_loan,
+    put_transaction,
+)
 from ..models.loan import (
     ApprovalEntry,
     ApprovalVoteStatus,
     CastVoteRequest,
     CreateLoanRequest,
+    CreatePaymentRequest,
     Loan,
     LoanStatus,
     ReleaseLoanRequest,
 )
 from ..models.member import MemberStatus
+from ..models.transaction import Transaction, TransactionType
 from ..models.user import User
 
 router = APIRouter()
@@ -118,3 +129,46 @@ def release_loan(loan_id: str, body: ReleaseLoanRequest, user: User = Depends(re
     loan.status = LoanStatus.ACTIVE
     put_loan(loan)
     return loan
+
+
+@router.post("/loans/{loan_id}/payments", response_model=Loan)
+def record_payment(loan_id: str, body: CreatePaymentRequest, user: User = Depends(require_admin)) -> Loan:
+    loan = get_loan_by_id(loan_id)
+    if loan is None:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    if loan.status != LoanStatus.ACTIVE:
+        raise HTTPException(status_code=400, detail="Payments can only be recorded against an active loan")
+    if body.amount > loan.remaining_balance:
+        raise HTTPException(status_code=400, detail="Payment amount exceeds the remaining balance")
+
+    payment_date = body.payment_date or date.today().isoformat()
+    loan.remaining_balance -= body.amount
+    loan.next_due_date = (
+        date.fromisoformat(payment_date) + timedelta(days=loan.repayment_interval_days)
+    ).isoformat()
+    loan.penalty_charged_for_current_cycle = False
+    if loan.remaining_balance <= 0:
+        loan.status = LoanStatus.COMPLETED
+    put_loan(loan)
+
+    put_transaction(
+        Transaction(
+            transaction_id=str(uuid4()),
+            loan_id=loan.loan_id,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            type=TransactionType.PAYMENT,
+            amount=body.amount,
+            remaining_balance_after=loan.remaining_balance,
+            recorded_by=user.user_id,
+            notes=body.notes,
+        )
+    )
+    return loan
+
+
+@router.get("/loans/{loan_id}/transactions", response_model=list[Transaction])
+def get_loan_transactions(loan_id: str, user: User = Depends(get_current_user)) -> list[Transaction]:
+    loan = get_loan_by_id(loan_id)
+    if loan is None:
+        raise HTTPException(status_code=404, detail="Loan not found")
+    return list_transactions_for_loan(loan_id)

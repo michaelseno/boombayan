@@ -8,6 +8,7 @@ class LoanStatus(str, Enum):
     APPROVED = "Approved"
     ACTIVE = "Active"
     REJECTED = "Rejected"
+    COMPLETED = "Completed"
 
 
 class ApprovalVoteStatus(str, Enum):
@@ -42,6 +43,7 @@ class Loan(BaseModel):
     net_release_amount: float | None = None
     remaining_balance: float | None = None
     next_due_date: str | None = None
+    penalty_charged_for_current_cycle: bool = False
     approvals: dict[str, ApprovalEntry] = {}
 
 
@@ -66,3 +68,9 @@ class CastVoteRequest(BaseModel):
 
 class ReleaseLoanRequest(BaseModel):
     release_date: str | None = None
+
+
+class CreatePaymentRequest(BaseModel):
+    amount: float = Field(gt=0)
+    payment_date: str | None = None
+    notes: str | None = None

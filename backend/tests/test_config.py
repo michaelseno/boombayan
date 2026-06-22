@@ -14,7 +14,13 @@ def test_read_config_returns_defaults_for_any_authenticated_user(
     response = client.get("/config")
 
     assert response.status_code == 200
-    assert response.json() == {"share_value": 0, "max_shares_per_member": 5, "default_interest_rate": 0}
+    assert response.json() == {
+        "share_value": 0,
+        "max_shares_per_member": 5,
+        "default_interest_rate": 0,
+        "penalty_rate": 0,
+        "penalty_grace_period_hours": 0,
+    }
 
 
 def test_update_config_succeeds_for_administrator(client, dynamodb_users_table, dynamodb_config_table):
@@ -24,11 +30,23 @@ def test_update_config_succeeds_for_administrator(client, dynamodb_users_table, 
 
     response = client.put(
         "/config",
-        json={"share_value": 500, "max_shares_per_member": 5, "default_interest_rate": 0.05},
+        json={
+            "share_value": 500,
+            "max_shares_per_member": 5,
+            "default_interest_rate": 0.05,
+            "penalty_rate": 0.02,
+            "penalty_grace_period_hours": 24,
+        },
     )
 
     assert response.status_code == 200
-    assert response.json() == {"share_value": 500, "max_shares_per_member": 5, "default_interest_rate": 0.05}
+    assert response.json() == {
+        "share_value": 500,
+        "max_shares_per_member": 5,
+        "default_interest_rate": 0.05,
+        "penalty_rate": 0.02,
+        "penalty_grace_period_hours": 24,
+    }
 
 
 def test_update_config_partial_update_preserves_other_fields(
@@ -40,12 +58,24 @@ def test_update_config_partial_update_preserves_other_fields(
 
     client.put(
         "/config",
-        json={"share_value": 500, "max_shares_per_member": 10, "default_interest_rate": 0.05},
+        json={
+            "share_value": 500,
+            "max_shares_per_member": 10,
+            "default_interest_rate": 0.05,
+            "penalty_rate": 0.02,
+            "penalty_grace_period_hours": 24,
+        },
     )
     response = client.put("/config", json={"share_value": 600})
 
     assert response.status_code == 200
-    assert response.json() == {"share_value": 600, "max_shares_per_member": 10, "default_interest_rate": 0.05}
+    assert response.json() == {
+        "share_value": 600,
+        "max_shares_per_member": 10,
+        "default_interest_rate": 0.05,
+        "penalty_rate": 0.02,
+        "penalty_grace_period_hours": 24,
+    }
 
 
 def test_update_config_rejected_for_non_administrator(client, dynamodb_users_table, dynamodb_config_table):

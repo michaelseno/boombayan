@@ -1,11 +1,13 @@
 from decimal import Decimal
 
 import boto3
+from boto3.dynamodb.conditions import Key
 
 from .config import settings
 from .models.config import Config
 from .models.loan import ApprovalEntry, ApprovalVoteStatus, Loan, LoanStatus
 from .models.member import Member, MemberStatus, ShareHistoryEntry
+from .models.transaction import Transaction, TransactionType
 from .models.user import User
 
 
@@ -145,6 +147,8 @@ def get_config() -> Config:
         share_value=float(item.get("ShareValue", 0)),
         max_shares_per_member=int(item.get("MaxSharesPerMember", 5)),
         default_interest_rate=float(item.get("DefaultInterestRate", 0)),
+        penalty_rate=float(item.get("PenaltyRate", 0)),
+        penalty_grace_period_hours=int(item.get("PenaltyGracePeriodHours", 0)),
     )
 
 
@@ -157,6 +161,8 @@ def put_config(config: Config) -> None:
             "ShareValue": Decimal(str(config.share_value)),
             "MaxSharesPerMember": config.max_shares_per_member,
             "DefaultInterestRate": Decimal(str(config.default_interest_rate)),
+            "PenaltyRate": Decimal(str(config.penalty_rate)),
+            "PenaltyGracePeriodHours": config.penalty_grace_period_hours,
         }
     )
 
@@ -206,6 +212,9 @@ def _loan_from_item(item: dict) -> Loan:
         net_release_amount=float(item["NetReleaseAmount"]) if "NetReleaseAmount" in item else None,
         remaining_balance=float(item["RemainingBalance"]) if "RemainingBalance" in item else None,
         next_due_date=item.get("NextDueDate"),
+        # .get(..., False), not direct indexing: loans written before this
+        # field existed have no PenaltyChargedForCurrentCycle attribute at all.
+        penalty_charged_for_current_cycle=bool(item.get("PenaltyChargedForCurrentCycle", False)),
         approvals=_approvals_from_item(item),
     )
 
@@ -220,6 +229,7 @@ def _item_from_loan(loan: Loan) -> dict:
         "ApplicationDate": loan.application_date,
         "Status": loan.status.value,
         "IsExceptionCase": loan.is_exception_case,
+        "PenaltyChargedForCurrentCycle": loan.penalty_charged_for_current_cycle,
         "Approvals": _item_from_approvals(loan.approvals),
     }
     if loan.approved_amount is not None:
@@ -254,3 +264,45 @@ def put_loan(loan: Loan) -> None:
 def list_loans() -> list[Loan]:
     response = get_loans_table().scan()
     return [_loan_from_item(item) for item in response["Items"]]
+
+
+def get_transactions_table():
+    return _dynamodb().Table(settings.transactions_table)
+
+
+def _transaction_from_item(item: dict) -> Transaction:
+    return Transaction(
+        transaction_id=item["TransactionId"],
+        loan_id=item["LoanId"],
+        timestamp=item["Timestamp"],
+        type=TransactionType(item["Type"]),
+        amount=float(item["Amount"]),
+        remaining_balance_after=float(item["RemainingBalanceAfter"]),
+        recorded_by=item.get("RecordedBy"),
+        notes=item.get("Notes"),
+    )
+
+
+def _item_from_transaction(transaction: Transaction) -> dict:
+    item = {
+        "LoanId": transaction.loan_id,
+        "Timestamp": transaction.timestamp,
+        "TransactionId": transaction.transaction_id,
+        "Type": transaction.type.value,
+        "Amount": Decimal(str(transaction.amount)),
+        "RemainingBalanceAfter": Decimal(str(transaction.remaining_balance_after)),
+    }
+    if transaction.recorded_by is not None:
+        item["RecordedBy"] = transaction.recorded_by
+    if transaction.notes is not None:
+        item["Notes"] = transaction.notes
+    return item
+
+
+def put_transaction(transaction: Transaction) -> None:
+    get_transactions_table().put_item(Item=_item_from_transaction(transaction))
+
+
+def list_transactions_for_loan(loan_id: str) -> list[Transaction]:
+    response = get_transactions_table().query(KeyConditionExpression=Key("LoanId").eq(loan_id))
+    return [_transaction_from_item(item) for item in response["Items"]]

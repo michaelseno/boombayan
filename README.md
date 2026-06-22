@@ -96,9 +96,23 @@ loan only reaches `Approved` once every User has approved. Once approved,
 an administrator releases it (computing the interest deduction, net release
 amount, and first due date) from the same page, moving it to `Active`.
 
+## Recording payments and the penalty engine
+
+Once a loan is `Active`, an administrator can record payments against it
+from the loan's detail page (`/loans/:loanId`), paying down its remaining
+balance. Each payment also advances the loan's next due date and re-arms
+the penalty engine for that loan. A payment that exactly clears the
+remaining balance moves the loan to `Completed`. Any authenticated User can
+view the loan's full payment/penalty history on the same page. Separately,
+a scheduled job runs every 6 hours and charges a one-time penalty (added to
+the balance owed) on any active loan that's missed its due date past the
+configured grace period — both the penalty rate and grace period are set
+from Settings, and the engine stays inactive until an administrator
+configures a non-zero penalty rate.
+
 ## What's not here yet
 
-This is Plan 3 of a multi-plan project — auth, dashboard shell, member/share
-management, and the loan lifecycle (application through release). Payment
-recording, the penalty engine, and cycle/dividend processing are designed
-but not yet built; see `docs/superpowers/plans/` for the phase breakdown.
+This is Plan 4 of a multi-plan project — auth, dashboard shell, member/share
+management, the loan lifecycle, and payments/penalties. Cycle/dividend
+processing and a UI/visual polish pass are designed but not yet built; see
+`docs/superpowers/plans/` for the phase breakdown.
