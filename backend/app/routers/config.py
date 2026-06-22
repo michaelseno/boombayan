@@ -22,5 +22,9 @@ def update_config(body: UpdateConfigRequest, user: User = Depends(require_admin)
         config.max_shares_per_member = body.max_shares_per_member
     if body.default_interest_rate is not None:
         config.default_interest_rate = body.default_interest_rate
+    if body.penalty_rate is not None:
+        config.penalty_rate = body.penalty_rate
+    if body.penalty_grace_period_hours is not None:
+        config.penalty_grace_period_hours = body.penalty_grace_period_hours
     put_config(config)
     return config

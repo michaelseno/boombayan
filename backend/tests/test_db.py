@@ -121,7 +121,13 @@ def test_put_and_get_config_roundtrip(dynamodb_config_table):
     from app.db import get_config, put_config
     from app.models.config import Config
 
-    config = Config(share_value=500, max_shares_per_member=5, default_interest_rate=0.05)
+    config = Config(
+        share_value=500,
+        max_shares_per_member=5,
+        default_interest_rate=0.05,
+        penalty_rate=0.02,
+        penalty_grace_period_hours=24,
+    )
     put_config(config)
 
     assert get_config() == config

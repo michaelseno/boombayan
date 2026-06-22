@@ -145,6 +145,8 @@ def get_config() -> Config:
         share_value=float(item.get("ShareValue", 0)),
         max_shares_per_member=int(item.get("MaxSharesPerMember", 5)),
         default_interest_rate=float(item.get("DefaultInterestRate", 0)),
+        penalty_rate=float(item.get("PenaltyRate", 0)),
+        penalty_grace_period_hours=int(item.get("PenaltyGracePeriodHours", 0)),
     )
 
 
@@ -157,6 +159,8 @@ def put_config(config: Config) -> None:
             "ShareValue": Decimal(str(config.share_value)),
             "MaxSharesPerMember": config.max_shares_per_member,
             "DefaultInterestRate": Decimal(str(config.default_interest_rate)),
+            "PenaltyRate": Decimal(str(config.penalty_rate)),
+            "PenaltyGracePeriodHours": config.penalty_grace_period_hours,
         }
     )
 
