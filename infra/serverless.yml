@@ -60,6 +60,10 @@ functions:
     handler: backend.app.handler.handler
     events:
       - httpApi: '*'
+  penaltyCheck:
+    handler: backend.app.penalty_handler.handler
+    events:
+      - schedule: rate(6 hours)
 
 resources:
   Resources:
