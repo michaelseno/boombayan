@@ -160,7 +160,7 @@ def test_update_member_returns_404_when_missing(client, dynamodb_users_table, dy
 
 
 def test_purchase_shares_updates_totals_and_history(
-    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_cycles_table
 ):
     from app.db import put_config, put_member
     from app.models.config import Config
@@ -274,3 +274,28 @@ def test_purchase_shares_rejected_for_non_administrator(
     response = client.post("/members/mem-1/shares", json={"shares_purchased": 2})
 
     assert response.status_code == 403
+
+
+def test_purchase_shares_stamps_current_open_cycle_id(
+    client, dynamodb_users_table, dynamodb_members_table, dynamodb_config_table, dynamodb_cycles_table
+):
+    from app.db import put_config, put_cycle, put_member
+    from app.models.config import Config
+    from app.models.cycle import Cycle, CycleStatus
+    from app.models.member import Member
+
+    put_cycle(Cycle(cycle_id="cycle-1", start_date="2026-01-01", status=CycleStatus.OPEN))
+    put_member(
+        Member(
+            member_id="mem-1", first_name="Ana", last_name="Reyes",
+            email="ana@example.com", phone="1", date_joined="2026-01-15",
+        )
+    )
+    put_config(Config(share_value=500, max_shares_per_member=5))
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    response = client.post("/members/mem-1/shares", json={"shares_purchased": 2})
+
+    assert response.json()["share_history"][0]["cycle_id"] == "cycle-1"

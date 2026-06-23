@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import get_current_user, require_admin
-from ..db import get_config, get_member_by_id, list_members, put_member
+from ..db import get_config, get_member_by_id, get_open_cycle, list_members, put_member
 from ..models.member import (
     CreateMemberRequest,
     Member,
@@ -87,10 +87,10 @@ def purchase_shares(
         )
 
     amount_paid = body.shares_purchased * config.share_value
+    open_cycle = get_open_cycle()
     member.share_history.append(
         ShareHistoryEntry(
-            # No Cycle entity yet (deferred to future plan); always None for now, not a bug
-            cycle_id=None,
+            cycle_id=open_cycle.cycle_id if open_cycle else None,
             shares_purchased=body.shares_purchased,
             share_value_at_purchase=config.share_value,
             amount_paid=amount_paid,
