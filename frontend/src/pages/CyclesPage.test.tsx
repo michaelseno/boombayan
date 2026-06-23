@@ -27,6 +27,7 @@ const openCycle = {
 }
 
 const admin = { user_id: 'admin-1', email: 'admin@boombayan.org', is_administrator: true, member_id: null }
+const boardMember = { user_id: 'member-1', email: 'member@boombayan.org', is_administrator: false, member_id: 'member-1' }
 
 describe('CyclesPage', () => {
   it('shows the list of cycles after loading', async () => {
@@ -85,6 +86,22 @@ describe('CyclesPage', () => {
       }),
     )
     expect(await screen.findByText('2026-01-01')).toBeInTheDocument()
+  })
+
+  it('hides the open-cycle form when the user is not an administrator', async () => {
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(apiFetch).mockImplementation((path) =>
+      path === '/cycles' ? Promise.resolve([]) : Promise.resolve(boardMember),
+    )
+
+    render(
+      <MemoryRouter>
+        <CyclesPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(screen.getByText('Cycles')).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Open cycle' })).not.toBeInTheDocument()
   })
 
   it('shows an error message when the cycles fetch fails', async () => {
