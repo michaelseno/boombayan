@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AddMemberPage } from './pages/AddMemberPage'
+import { CycleDetailPage } from './pages/CycleDetailPage'
 import { CyclesPage } from './pages/CyclesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoanDetailPage } from './pages/LoanDetailPage'
@@ -27,6 +28,7 @@ function App() {
             <Route path="/loans/new" element={<NewLoanPage />} />
             <Route path="/loans/:loanId" element={<LoanDetailPage />} />
             <Route path="/cycles" element={<CyclesPage />} />
+            <Route path="/cycles/:cycleId" element={<CycleDetailPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
