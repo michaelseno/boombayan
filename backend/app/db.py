@@ -321,6 +321,11 @@ def list_transactions_for_loan(loan_id: str) -> list[Transaction]:
     return [_transaction_from_item(item) for item in response["Items"]]
 
 
+def list_all_transactions() -> list[Transaction]:
+    response = get_transactions_table().scan()
+    return [_transaction_from_item(item) for item in response["Items"]]
+
+
 def get_cycles_table():
     return _dynamodb().Table(settings.cycles_table)
 

@@ -38,3 +38,23 @@ class Dividend(BaseModel):
     total_amount: float
     shares_at_calculation: int
     rank: int | None = None
+
+
+class DividendBreakdown(BaseModel):
+    member_id: str
+    shares_at_calculation: int
+    share_based_amount: float
+    top3_bonus_amount: float
+    total_amount: float
+    rank: int | None = None
+
+
+class CycleCloseResult(BaseModel):
+    cycle_id: str
+    total_interest_earned: float
+    total_penalties_collected: float
+    top3_bonus_percentage: float
+    top3_bonus_pool: float
+    remaining_profit: float
+    total_shares_at_close: int
+    dividends: list[DividendBreakdown]
