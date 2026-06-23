@@ -17,6 +17,9 @@ const config = {
   default_interest_rate: 0.05,
   penalty_rate: 0.02,
   penalty_grace_period_hours: 24,
+  top3_bonus_percentage: 0.1,
+  top3_ranking_weight_amount: 0.6,
+  top3_ranking_weight_count: 0.4,
 }
 
 describe('SettingsPage', () => {
@@ -31,6 +34,9 @@ describe('SettingsPage', () => {
     expect(screen.getByLabelText('Default interest rate')).toHaveValue(0.05)
     expect(screen.getByLabelText('Penalty rate')).toHaveValue(0.02)
     expect(screen.getByLabelText('Penalty grace period (hours)')).toHaveValue(24)
+    expect(screen.getByLabelText('Top 3 bonus percentage')).toHaveValue(0.1)
+    expect(screen.getByLabelText('Top 3 ranking weight (amount)')).toHaveValue(0.6)
+    expect(screen.getByLabelText('Top 3 ranking weight (count)')).toHaveValue(0.4)
   })
 
   it('saves updated config values on submit', async () => {
@@ -54,6 +60,9 @@ describe('SettingsPage', () => {
           default_interest_rate: 0.05,
           penalty_rate: 0.02,
           penalty_grace_period_hours: 24,
+          top3_bonus_percentage: 0.1,
+          top3_ranking_weight_amount: 0.6,
+          top3_ranking_weight_count: 0.4,
         },
       }),
     )
