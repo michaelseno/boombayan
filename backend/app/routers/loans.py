@@ -8,6 +8,7 @@ from ..db import (
     get_config,
     get_loan_by_id,
     get_member_by_id,
+    get_open_cycle,
     list_loans,
     list_transactions_for_loan,
     list_users,
@@ -127,6 +128,8 @@ def release_loan(loan_id: str, body: ReleaseLoanRequest, user: User = Depends(re
         date.fromisoformat(release_date) + timedelta(days=loan.repayment_interval_days)
     ).isoformat()
     loan.status = LoanStatus.ACTIVE
+    open_cycle = get_open_cycle()
+    loan.cycle_id = open_cycle.cycle_id if open_cycle else None
     put_loan(loan)
     return loan
 
