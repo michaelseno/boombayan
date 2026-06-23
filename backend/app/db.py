@@ -213,6 +213,7 @@ def _loan_from_item(item: dict) -> Loan:
         net_release_amount=float(item["NetReleaseAmount"]) if "NetReleaseAmount" in item else None,
         remaining_balance=float(item["RemainingBalance"]) if "RemainingBalance" in item else None,
         next_due_date=item.get("NextDueDate"),
+        cycle_id=item.get("CycleId"),
         # .get(..., False), not direct indexing: loans written before this
         # field existed have no PenaltyChargedForCurrentCycle attribute at all.
         penalty_charged_for_current_cycle=bool(item.get("PenaltyChargedForCurrentCycle", False)),
@@ -247,6 +248,8 @@ def _item_from_loan(loan: Loan) -> dict:
         item["RemainingBalance"] = Decimal(str(loan.remaining_balance))
     if loan.next_due_date is not None:
         item["NextDueDate"] = loan.next_due_date
+    if loan.cycle_id is not None:
+        item["CycleId"] = loan.cycle_id
     return item
 
 
@@ -281,6 +284,7 @@ def _transaction_from_item(item: dict) -> Transaction:
         remaining_balance_after=float(item["RemainingBalanceAfter"]),
         recorded_by=item.get("RecordedBy"),
         notes=item.get("Notes"),
+        cycle_id=item.get("CycleId"),
     )
 
 
@@ -297,6 +301,8 @@ def _item_from_transaction(transaction: Transaction) -> dict:
         item["RecordedBy"] = transaction.recorded_by
     if transaction.notes is not None:
         item["Notes"] = transaction.notes
+    if transaction.cycle_id is not None:
+        item["CycleId"] = transaction.cycle_id
     return item
 
 

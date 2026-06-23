@@ -44,6 +44,7 @@ class Loan(BaseModel):
     remaining_balance: float | None = None
     next_due_date: str | None = None
     penalty_charged_for_current_cycle: bool = False
+    cycle_id: str | None = None
     approvals: dict[str, ApprovalEntry] = {}
 
 

@@ -385,3 +385,50 @@ def test_list_dividends_for_cycle_returns_only_that_cycles_dividends(dynamodb_di
 
     dividends = list_dividends_for_cycle("cycle-1")
     assert [d.cycle_id for d in dividends] == ["cycle-1"]
+
+
+def test_put_and_get_loan_persists_cycle_id(dynamodb_loans_table):
+    from app.db import get_loan_by_id, put_loan
+    from app.models.loan import Loan, LoanStatus
+
+    loan = Loan(
+        loan_id="loan-1", member_id="mem-1", requested_amount=10000, approved_amount=10000,
+        repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        status=LoanStatus.ACTIVE, release_date="2026-06-21", interest_deduction=500,
+        net_release_amount=9500, remaining_balance=10000, next_due_date="2026-07-21",
+        cycle_id="cycle-1",
+    )
+    put_loan(loan)
+
+    fetched = get_loan_by_id("loan-1")
+    assert fetched.cycle_id == "cycle-1"
+
+
+def test_put_and_get_loan_persists_null_cycle_id_by_default(dynamodb_loans_table):
+    from app.db import get_loan_by_id, put_loan
+    from app.models.loan import Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        )
+    )
+
+    assert get_loan_by_id("loan-1").cycle_id is None
+
+
+def test_put_and_get_transaction_persists_cycle_id(dynamodb_transactions_table):
+    from app.db import list_transactions_for_loan, put_transaction
+    from app.models.transaction import Transaction, TransactionType
+
+    put_transaction(
+        Transaction(
+            transaction_id="txn-1", loan_id="loan-1", timestamp="2026-07-21T10:00:00+00:00",
+            type=TransactionType.PAYMENT, amount=3000, remaining_balance_after=7000,
+            cycle_id="cycle-1",
+        )
+    )
+
+    fetched = list_transactions_for_loan("loan-1")
+    assert fetched[0].cycle_id == "cycle-1"

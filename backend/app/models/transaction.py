@@ -17,3 +17,4 @@ class Transaction(BaseModel):
     remaining_balance_after: float
     recorded_by: str | None = None
     notes: str | None = None
+    cycle_id: str | None = None
