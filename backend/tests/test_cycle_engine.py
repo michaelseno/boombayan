@@ -188,3 +188,28 @@ def test_compute_cycle_close_with_no_qualifying_members_awards_no_top3_bonus(
     assert result.top3_bonus_pool == 0
     assert result.dividends[0].rank is None
     assert result.dividends[0].top3_bonus_amount == 0
+
+
+def test_compute_cycle_close_breaks_ties_by_most_recent_loan_application_date(
+    dynamodb_config_table, dynamodb_loans_table, dynamodb_members_table, dynamodb_transactions_table
+):
+    from app.cycle_engine import compute_cycle_close
+
+    put_config(Config(top3_bonus_percentage=0.1, top3_ranking_weight_amount=1, top3_ranking_weight_count=0))
+    # mem-1: one loan with application_date="2026-01-20"
+    put_loan(_loan("loan-1", "mem-1", 1000, 100, application_date="2026-01-20"))
+    # mem-2: two loans with earliest="2026-01-05" and most_recent="2026-01-25"
+    put_loan(_loan("loan-2a", "mem-2", 600, 60, application_date="2026-01-05"))
+    put_loan(_loan("loan-2b", "mem-2", 400, 40, application_date="2026-01-25"))
+    put_member(_member("mem-1", current_shares=1))
+    put_member(_member("mem-2", current_shares=1))
+
+    result = compute_cycle_close(_cycle())
+
+    ranked = {d.member_id: d.rank for d in result.dividends if d.rank is not None}
+    # Both members have same total_loan_amount (1000) and same score (1.0), so they tie on score.
+    # Tie-break uses most_recent_application_date:
+    # mem-1's most_recent = "2026-01-20"
+    # mem-2's most_recent = max("2026-01-05", "2026-01-25") = "2026-01-25"
+    # Earlier date wins, so mem-1 (2026-01-20) ranks above mem-2 (2026-01-25)
+    assert ranked == {"mem-1": 1, "mem-2": 2}
