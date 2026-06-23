@@ -27,7 +27,7 @@ def _put_active_loan(loan_id="loan-1", remaining_balance=10000.0, next_due_date=
 
 
 def test_record_payment_reduces_remaining_balance_and_advances_due_date(
-    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
 ):
     _put_active_loan(remaining_balance=10000.0)
     admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
@@ -48,7 +48,7 @@ def test_record_payment_reduces_remaining_balance_and_advances_due_date(
 
 
 def test_record_payment_records_a_transaction(
-    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
 ):
     _put_active_loan(remaining_balance=10000.0)
     admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
@@ -69,7 +69,7 @@ def test_record_payment_records_a_transaction(
 
 
 def test_record_payment_completes_loan_when_balance_reaches_zero(
-    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
 ):
     _put_active_loan(remaining_balance=5000.0)
     admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
@@ -84,7 +84,7 @@ def test_record_payment_completes_loan_when_balance_reaches_zero(
 
 
 def test_record_payment_resets_penalty_charged_flag(
-    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
 ):
     _put_active_loan(remaining_balance=10000.0, penalty_charged_for_current_cycle=True)
     admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
@@ -192,7 +192,7 @@ def test_list_transactions_returns_404_when_loan_missing(
 
 
 def test_list_transactions_returns_oldest_first(
-    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
 ):
     _put_active_loan(remaining_balance=10000.0)
     admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
@@ -205,3 +205,37 @@ def test_list_transactions_returns_oldest_first(
     response = client.get("/loans/loan-1/transactions")
     amounts = [t["amount"] for t in response.json()]
     assert amounts == [1000, 2000]
+
+
+def test_record_payment_stamps_current_open_cycle_id(
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
+):
+    from app.db import list_transactions_for_loan, put_cycle
+    from app.models.cycle import Cycle, CycleStatus
+
+    put_cycle(Cycle(cycle_id="cycle-1", start_date="2026-01-01", status=CycleStatus.OPEN))
+    _put_active_loan(remaining_balance=10000.0)
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    client.post("/loans/loan-1/payments", json={"amount": 3000})
+
+    transactions = list_transactions_for_loan("loan-1")
+    assert transactions[0].cycle_id == "cycle-1"
+
+
+def test_record_payment_leaves_transaction_cycle_id_null_when_no_cycle_is_open(
+    client, dynamodb_users_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
+):
+    from app.db import list_transactions_for_loan
+
+    _put_active_loan(remaining_balance=10000.0)
+    admin = User(user_id="admin-1", email="admin@boombayan.org", is_administrator=True)
+    put_user(admin)
+    app.dependency_overrides[get_current_user_id] = lambda: "admin-1"
+
+    client.post("/loans/loan-1/payments", json={"amount": 3000})
+
+    transactions = list_transactions_for_loan("loan-1")
+    assert transactions[0].cycle_id is None

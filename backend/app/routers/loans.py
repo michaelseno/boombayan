@@ -154,6 +154,7 @@ def record_payment(loan_id: str, body: CreatePaymentRequest, user: User = Depend
         loan.status = LoanStatus.COMPLETED
     put_loan(loan)
 
+    open_cycle = get_open_cycle()
     put_transaction(
         Transaction(
             transaction_id=str(uuid4()),
@@ -164,6 +165,7 @@ def record_payment(loan_id: str, body: CreatePaymentRequest, user: User = Depend
             remaining_balance_after=loan.remaining_balance,
             recorded_by=user.user_id,
             notes=body.notes,
+            cycle_id=open_cycle.cycle_id if open_cycle else None,
         )
     )
     return loan

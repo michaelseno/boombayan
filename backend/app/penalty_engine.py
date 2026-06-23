@@ -1,7 +1,7 @@
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import uuid4
 
-from .db import get_config, list_loans, put_loan, put_transaction
+from .db import get_config, get_open_cycle, list_loans, put_loan, put_transaction
 from .models.loan import LoanStatus
 from .models.transaction import Transaction, TransactionType
 
@@ -31,6 +31,7 @@ def run_penalty_check() -> int:
         loan.penalty_charged_for_current_cycle = True
         put_loan(loan)
 
+        open_cycle = get_open_cycle()
         put_transaction(
             Transaction(
                 transaction_id=str(uuid4()),
@@ -41,6 +42,7 @@ def run_penalty_check() -> int:
                 remaining_balance_after=loan.remaining_balance,
                 recorded_by=None,
                 notes=None,
+                cycle_id=open_cycle.cycle_id if open_cycle else None,
             )
         )
         charged_count += 1

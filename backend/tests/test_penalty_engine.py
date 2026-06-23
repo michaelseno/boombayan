@@ -27,7 +27,7 @@ def _put_active_loan(loan_id="loan-1", remaining_balance=10000.0, next_due_date=
 
 
 def test_run_penalty_check_charges_penalty_past_grace_period(
-    dynamodb_config_table, dynamodb_loans_table, dynamodb_transactions_table
+    dynamodb_config_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
 ):
     from app.penalty_engine import run_penalty_check
 
@@ -44,7 +44,7 @@ def test_run_penalty_check_charges_penalty_past_grace_period(
 
 
 def test_run_penalty_check_records_a_penalty_transaction(
-    dynamodb_config_table, dynamodb_loans_table, dynamodb_transactions_table
+    dynamodb_config_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
 ):
     from app.penalty_engine import run_penalty_check
 
@@ -127,7 +127,7 @@ def test_run_penalty_check_skips_non_active_loans(
 
 
 def test_run_penalty_check_processes_multiple_loans_independently(
-    dynamodb_config_table, dynamodb_loans_table, dynamodb_transactions_table
+    dynamodb_config_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
 ):
     from app.penalty_engine import run_penalty_check
 
@@ -142,3 +142,37 @@ def test_run_penalty_check_processes_multiple_loans_independently(
     assert charged == 1
     assert get_loan_by_id("loan-1").remaining_balance == 10200.0
     assert get_loan_by_id("loan-2").remaining_balance == 5000.0
+
+
+def test_run_penalty_check_stamps_current_open_cycle_id_on_penalty_transaction(
+    dynamodb_config_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
+):
+    from app.db import list_transactions_for_loan, put_cycle
+    from app.models.cycle import Cycle, CycleStatus
+    from app.penalty_engine import run_penalty_check
+
+    put_cycle(Cycle(cycle_id="cycle-1", start_date="2026-01-01", status=CycleStatus.OPEN))
+    put_config(Config(penalty_rate=0.02, penalty_grace_period_hours=0))
+    overdue_date = (date.today() - timedelta(days=2)).isoformat()
+    _put_active_loan(remaining_balance=10000.0, next_due_date=overdue_date)
+
+    run_penalty_check()
+
+    transactions = list_transactions_for_loan("loan-1")
+    assert transactions[0].cycle_id == "cycle-1"
+
+
+def test_run_penalty_check_leaves_transaction_cycle_id_null_when_no_cycle_is_open(
+    dynamodb_config_table, dynamodb_loans_table, dynamodb_transactions_table, dynamodb_cycles_table
+):
+    from app.db import list_transactions_for_loan
+    from app.penalty_engine import run_penalty_check
+
+    put_config(Config(penalty_rate=0.02, penalty_grace_period_hours=0))
+    overdue_date = (date.today() - timedelta(days=2)).isoformat()
+    _put_active_loan(remaining_balance=10000.0, next_due_date=overdue_date)
+
+    run_penalty_check()
+
+    transactions = list_transactions_for_loan("loan-1")
+    assert transactions[0].cycle_id is None
