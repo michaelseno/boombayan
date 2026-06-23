@@ -110,9 +110,25 @@ configured grace period — both the penalty rate and grace period are set
 from Settings, and the engine stays inactive until an administrator
 configures a non-zero penalty rate.
 
+## Cycle close and dividend distribution
+
+An administrator opens a cycle from the Cycles page (`/cycles`) — only one
+cycle can be open at a time. While a cycle is open, every loan release,
+payment, penalty, and share purchase is stamped with that cycle's ID, so
+the close calculation knows exactly what to include. From the open cycle's
+detail page, an administrator can "Preview close" to see the computed
+interest/penalty totals, Top 3 ranking, and per-member dividend breakdown
+without committing anything, then "Confirm close" to persist it. Closing a
+cycle is irreversible — there is no reopen action. Any authenticated user
+can view a cycle's final totals and dividend table afterward. The Top 3
+bonus percentage and ranking weights are configured from the Settings page
+and default to `0` (no bonus, no ranking impact) until the board sets real
+values.
+
 ## What's not here yet
 
-This is Plan 4 of a multi-plan project — auth, dashboard shell, member/share
-management, the loan lifecycle, and payments/penalties. Cycle/dividend
-processing and a UI/visual polish pass are designed but not yet built; see
-`docs/superpowers/plans/` for the phase breakdown.
+This is Plan 5 of a multi-plan project — auth, dashboard shell, member/share
+management, the loan lifecycle, payments/penalties, and now cycle close with
+dividend distribution. A UI/visual polish pass and the Reporting module (8
+report types) are designed but not yet built; see `docs/superpowers/plans/`
+for the phase breakdown.
