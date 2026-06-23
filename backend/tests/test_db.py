@@ -127,6 +127,9 @@ def test_put_and_get_config_roundtrip(dynamodb_config_table):
         default_interest_rate=0.05,
         penalty_rate=0.02,
         penalty_grace_period_hours=24,
+        top3_bonus_percentage=0.1,
+        top3_ranking_weight_amount=0.6,
+        top3_ranking_weight_count=0.4,
     )
     put_config(config)
 

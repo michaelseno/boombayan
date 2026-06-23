@@ -7,6 +7,9 @@ class Config(BaseModel):
     default_interest_rate: float = 0
     penalty_rate: float = 0
     penalty_grace_period_hours: int = 0
+    top3_bonus_percentage: float = 0
+    top3_ranking_weight_amount: float = 0
+    top3_ranking_weight_count: float = 0
 
 
 class UpdateConfigRequest(BaseModel):
@@ -15,3 +18,6 @@ class UpdateConfigRequest(BaseModel):
     default_interest_rate: float | None = None
     penalty_rate: float | None = None
     penalty_grace_period_hours: int | None = None
+    top3_bonus_percentage: float | None = None
+    top3_ranking_weight_amount: float | None = None
+    top3_ranking_weight_count: float | None = None

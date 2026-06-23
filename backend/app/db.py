@@ -150,6 +150,9 @@ def get_config() -> Config:
         default_interest_rate=float(item.get("DefaultInterestRate", 0)),
         penalty_rate=float(item.get("PenaltyRate", 0)),
         penalty_grace_period_hours=int(item.get("PenaltyGracePeriodHours", 0)),
+        top3_bonus_percentage=float(item.get("Top3BonusPercentage", 0)),
+        top3_ranking_weight_amount=float(item.get("Top3RankingWeightAmount", 0)),
+        top3_ranking_weight_count=float(item.get("Top3RankingWeightCount", 0)),
     )
 
 
@@ -164,6 +167,9 @@ def put_config(config: Config) -> None:
             "DefaultInterestRate": Decimal(str(config.default_interest_rate)),
             "PenaltyRate": Decimal(str(config.penalty_rate)),
             "PenaltyGracePeriodHours": config.penalty_grace_period_hours,
+            "Top3BonusPercentage": Decimal(str(config.top3_bonus_percentage)),
+            "Top3RankingWeightAmount": Decimal(str(config.top3_ranking_weight_amount)),
+            "Top3RankingWeightCount": Decimal(str(config.top3_ranking_weight_count)),
         }
     )
 

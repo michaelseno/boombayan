@@ -20,6 +20,9 @@ def test_read_config_returns_defaults_for_any_authenticated_user(
         "default_interest_rate": 0,
         "penalty_rate": 0,
         "penalty_grace_period_hours": 0,
+        "top3_bonus_percentage": 0,
+        "top3_ranking_weight_amount": 0,
+        "top3_ranking_weight_count": 0,
     }
 
 
@@ -36,6 +39,9 @@ def test_update_config_succeeds_for_administrator(client, dynamodb_users_table, 
             "default_interest_rate": 0.05,
             "penalty_rate": 0.02,
             "penalty_grace_period_hours": 24,
+            "top3_bonus_percentage": 0.1,
+            "top3_ranking_weight_amount": 0.6,
+            "top3_ranking_weight_count": 0.4,
         },
     )
 
@@ -46,6 +52,9 @@ def test_update_config_succeeds_for_administrator(client, dynamodb_users_table, 
         "default_interest_rate": 0.05,
         "penalty_rate": 0.02,
         "penalty_grace_period_hours": 24,
+        "top3_bonus_percentage": 0.1,
+        "top3_ranking_weight_amount": 0.6,
+        "top3_ranking_weight_count": 0.4,
     }
 
 
@@ -64,6 +73,9 @@ def test_update_config_partial_update_preserves_other_fields(
             "default_interest_rate": 0.05,
             "penalty_rate": 0.02,
             "penalty_grace_period_hours": 24,
+            "top3_bonus_percentage": 0.1,
+            "top3_ranking_weight_amount": 0.6,
+            "top3_ranking_weight_count": 0.4,
         },
     )
     response = client.put("/config", json={"share_value": 600})
@@ -75,6 +87,9 @@ def test_update_config_partial_update_preserves_other_fields(
         "default_interest_rate": 0.05,
         "penalty_rate": 0.02,
         "penalty_grace_period_hours": 24,
+        "top3_bonus_percentage": 0.1,
+        "top3_ranking_weight_amount": 0.6,
+        "top3_ranking_weight_count": 0.4,
     }
 
 

@@ -26,5 +26,11 @@ def update_config(body: UpdateConfigRequest, user: User = Depends(require_admin)
         config.penalty_rate = body.penalty_rate
     if body.penalty_grace_period_hours is not None:
         config.penalty_grace_period_hours = body.penalty_grace_period_hours
+    if body.top3_bonus_percentage is not None:
+        config.top3_bonus_percentage = body.top3_bonus_percentage
+    if body.top3_ranking_weight_amount is not None:
+        config.top3_ranking_weight_amount = body.top3_ranking_weight_amount
+    if body.top3_ranking_weight_count is not None:
+        config.top3_ranking_weight_count = body.top3_ranking_weight_count
     put_config(config)
     return config
