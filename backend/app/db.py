@@ -5,6 +5,7 @@ from boto3.dynamodb.conditions import Key
 
 from .config import settings
 from .models.config import Config
+from .models.cycle import Cycle, CycleStatus, Dividend
 from .models.loan import ApprovalEntry, ApprovalVoteStatus, Loan, LoanStatus
 from .models.member import Member, MemberStatus, ShareHistoryEntry
 from .models.transaction import Transaction, TransactionType
@@ -306,3 +307,111 @@ def put_transaction(transaction: Transaction) -> None:
 def list_transactions_for_loan(loan_id: str) -> list[Transaction]:
     response = get_transactions_table().query(KeyConditionExpression=Key("LoanId").eq(loan_id))
     return [_transaction_from_item(item) for item in response["Items"]]
+
+
+def get_cycles_table():
+    return _dynamodb().Table(settings.cycles_table)
+
+
+def _cycle_from_item(item: dict) -> Cycle:
+    return Cycle(
+        cycle_id=item["CycleId"],
+        start_date=item["StartDate"],
+        end_date=item.get("EndDate"),
+        status=CycleStatus(item["Status"]),
+        total_interest_earned=float(item["TotalInterestEarned"]) if "TotalInterestEarned" in item else None,
+        total_penalties_collected=float(item["TotalPenaltiesCollected"]) if "TotalPenaltiesCollected" in item else None,
+        top3_bonus_percentage=float(item["Top3BonusPercentage"]) if "Top3BonusPercentage" in item else None,
+        top3_bonus_pool=float(item["Top3BonusPool"]) if "Top3BonusPool" in item else None,
+        remaining_profit=float(item["RemainingProfit"]) if "RemainingProfit" in item else None,
+        total_shares_at_close=int(item["TotalSharesAtClose"]) if "TotalSharesAtClose" in item else None,
+        closed_at=item.get("ClosedAt"),
+    )
+
+
+def _item_from_cycle(cycle: Cycle) -> dict:
+    item = {
+        "CycleId": cycle.cycle_id,
+        "StartDate": cycle.start_date,
+        "Status": cycle.status.value,
+    }
+    if cycle.end_date is not None:
+        item["EndDate"] = cycle.end_date
+    if cycle.total_interest_earned is not None:
+        item["TotalInterestEarned"] = Decimal(str(cycle.total_interest_earned))
+    if cycle.total_penalties_collected is not None:
+        item["TotalPenaltiesCollected"] = Decimal(str(cycle.total_penalties_collected))
+    if cycle.top3_bonus_percentage is not None:
+        item["Top3BonusPercentage"] = Decimal(str(cycle.top3_bonus_percentage))
+    if cycle.top3_bonus_pool is not None:
+        item["Top3BonusPool"] = Decimal(str(cycle.top3_bonus_pool))
+    if cycle.remaining_profit is not None:
+        item["RemainingProfit"] = Decimal(str(cycle.remaining_profit))
+    if cycle.total_shares_at_close is not None:
+        item["TotalSharesAtClose"] = cycle.total_shares_at_close
+    if cycle.closed_at is not None:
+        item["ClosedAt"] = cycle.closed_at
+    return item
+
+
+def get_cycle_by_id(cycle_id: str) -> Cycle | None:
+    response = get_cycles_table().get_item(Key={"CycleId": cycle_id})
+    item = response.get("Item")
+    if item is None:
+        return None
+    return _cycle_from_item(item)
+
+
+def put_cycle(cycle: Cycle) -> None:
+    get_cycles_table().put_item(Item=_item_from_cycle(cycle))
+
+
+def list_cycles() -> list[Cycle]:
+    response = get_cycles_table().scan()
+    return [_cycle_from_item(item) for item in response["Items"]]
+
+
+def get_open_cycle() -> Cycle | None:
+    for cycle in list_cycles():
+        if cycle.status == CycleStatus.OPEN:
+            return cycle
+    return None
+
+
+def get_dividends_table():
+    return _dynamodb().Table(settings.dividends_table)
+
+
+def _dividend_from_item(item: dict) -> Dividend:
+    return Dividend(
+        cycle_id=item["CycleId"],
+        member_id=item["MemberId"],
+        share_based_amount=float(item["ShareBasedAmount"]),
+        top3_bonus_amount=float(item["Top3BonusAmount"]),
+        total_amount=float(item["TotalAmount"]),
+        shares_at_calculation=int(item["SharesAtCalculation"]),
+        rank=int(item["Rank"]) if "Rank" in item else None,
+    )
+
+
+def _item_from_dividend(dividend: Dividend) -> dict:
+    item = {
+        "CycleId": dividend.cycle_id,
+        "MemberId": dividend.member_id,
+        "ShareBasedAmount": Decimal(str(dividend.share_based_amount)),
+        "Top3BonusAmount": Decimal(str(dividend.top3_bonus_amount)),
+        "TotalAmount": Decimal(str(dividend.total_amount)),
+        "SharesAtCalculation": dividend.shares_at_calculation,
+    }
+    if dividend.rank is not None:
+        item["Rank"] = dividend.rank
+    return item
+
+
+def put_dividend(dividend: Dividend) -> None:
+    get_dividends_table().put_item(Item=_item_from_dividend(dividend))
+
+
+def list_dividends_for_cycle(cycle_id: str) -> list[Dividend]:
+    response = get_dividends_table().query(KeyConditionExpression=Key("CycleId").eq(cycle_id))
+    return [_dividend_from_item(item) for item in response["Items"]]

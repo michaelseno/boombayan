@@ -112,3 +112,43 @@ def dynamodb_transactions_table(monkeypatch):
             BillingMode="PAY_PER_REQUEST",
         )
         yield
+
+
+@pytest.fixture
+def dynamodb_cycles_table(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "cycles_table", "test-cycles")
+
+    with mock_aws():
+        dynamo_client = boto3.client("dynamodb", region_name="us-east-1")
+        dynamo_client.create_table(
+            TableName="test-cycles",
+            AttributeDefinitions=[{"AttributeName": "CycleId", "AttributeType": "S"}],
+            KeySchema=[{"AttributeName": "CycleId", "KeyType": "HASH"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        yield
+
+
+@pytest.fixture
+def dynamodb_dividends_table(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "dividends_table", "test-dividends")
+
+    with mock_aws():
+        dynamo_client = boto3.client("dynamodb", region_name="us-east-1")
+        dynamo_client.create_table(
+            TableName="test-dividends",
+            AttributeDefinitions=[
+                {"AttributeName": "CycleId", "AttributeType": "S"},
+                {"AttributeName": "MemberId", "AttributeType": "S"},
+            ],
+            KeySchema=[
+                {"AttributeName": "CycleId", "KeyType": "HASH"},
+                {"AttributeName": "MemberId", "KeyType": "RANGE"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        yield
