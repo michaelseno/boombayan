@@ -136,4 +136,42 @@ describe('CycleDetailPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this cycle.')
   })
+
+  it('does not show close UI for non-administrator viewing an open cycle', async () => {
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    const nonAdmin = { ...admin, is_administrator: false }
+    vi.mocked(apiFetch).mockImplementation((path) => {
+      if (path === '/cycles/cycle-1') return Promise.resolve(openCycle)
+      if (path === '/me') return Promise.resolve(nonAdmin)
+      if (path === '/cycles/cycle-1/dividends') return Promise.resolve([])
+      if (path === '/members') return Promise.resolve([member])
+      throw new Error(`Unexpected path: ${path}`)
+    })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Status: Open')).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Preview close' })).not.toBeInTheDocument()
+  })
+
+  it('does not show close UI for administrator viewing a closed cycle', async () => {
+    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    const closedCycle = {
+      ...openCycle,
+      status: 'Closed',
+      end_date: '2026-06-23',
+    }
+    vi.mocked(apiFetch).mockImplementation((path) => {
+      if (path === '/cycles/cycle-1') return Promise.resolve(closedCycle)
+      if (path === '/me') return Promise.resolve(admin)
+      if (path === '/cycles/cycle-1/dividends') return Promise.resolve([])
+      if (path === '/members') return Promise.resolve([member])
+      throw new Error(`Unexpected path: ${path}`)
+    })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Status: Closed')).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Preview close' })).not.toBeInTheDocument()
+  })
 })
