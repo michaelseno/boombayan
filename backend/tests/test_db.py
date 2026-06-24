@@ -127,6 +127,9 @@ def test_put_and_get_config_roundtrip(dynamodb_config_table):
         default_interest_rate=0.05,
         penalty_rate=0.02,
         penalty_grace_period_hours=24,
+        top3_bonus_percentage=0.1,
+        top3_ranking_weight_amount=0.6,
+        top3_ranking_weight_count=0.4,
     )
     put_config(config)
 
@@ -282,3 +285,153 @@ def test_list_transactions_for_loan_returns_oldest_first(dynamodb_transactions_t
 
     transactions = list_transactions_for_loan("loan-1")
     assert [t.transaction_id for t in transactions] == ["txn-1", "txn-2"]
+
+
+def test_put_and_get_cycle_roundtrip(dynamodb_cycles_table):
+    from app.db import get_cycle_by_id, put_cycle
+    from app.models.cycle import Cycle, CycleStatus
+
+    cycle = Cycle(cycle_id="cycle-1", start_date="2026-01-01", status=CycleStatus.OPEN)
+    put_cycle(cycle)
+
+    fetched = get_cycle_by_id("cycle-1")
+    assert fetched == cycle
+
+
+def test_get_cycle_by_id_returns_none_when_missing(dynamodb_cycles_table):
+    from app.db import get_cycle_by_id
+
+    assert get_cycle_by_id("does-not-exist") is None
+
+
+def test_put_cycle_persists_close_fields(dynamodb_cycles_table):
+    from app.db import get_cycle_by_id, put_cycle
+    from app.models.cycle import Cycle, CycleStatus
+
+    cycle = Cycle(
+        cycle_id="cycle-1",
+        start_date="2026-01-01",
+        end_date="2026-06-30",
+        status=CycleStatus.CLOSED,
+        total_interest_earned=1000,
+        total_penalties_collected=50,
+        top3_bonus_percentage=0.1,
+        top3_bonus_pool=100,
+        remaining_profit=900,
+        total_shares_at_close=20,
+        closed_at="2026-06-30T10:00:00+00:00",
+    )
+    put_cycle(cycle)
+
+    fetched = get_cycle_by_id("cycle-1")
+    assert fetched == cycle
+
+
+def test_list_cycles_returns_all_cycles(dynamodb_cycles_table):
+    from app.db import list_cycles, put_cycle
+    from app.models.cycle import Cycle, CycleStatus
+
+    put_cycle(Cycle(cycle_id="cycle-1", start_date="2026-01-01", status=CycleStatus.CLOSED))
+    put_cycle(Cycle(cycle_id="cycle-2", start_date="2026-07-01", status=CycleStatus.OPEN))
+
+    cycles = list_cycles()
+    assert {c.cycle_id for c in cycles} == {"cycle-1", "cycle-2"}
+
+
+def test_get_open_cycle_returns_the_open_cycle(dynamodb_cycles_table):
+    from app.db import get_open_cycle, put_cycle
+    from app.models.cycle import Cycle, CycleStatus
+
+    put_cycle(Cycle(cycle_id="cycle-1", start_date="2026-01-01", status=CycleStatus.CLOSED))
+    put_cycle(Cycle(cycle_id="cycle-2", start_date="2026-07-01", status=CycleStatus.OPEN))
+
+    open_cycle = get_open_cycle()
+    assert open_cycle is not None
+    assert open_cycle.cycle_id == "cycle-2"
+
+
+def test_get_open_cycle_returns_none_when_no_cycle_is_open(dynamodb_cycles_table):
+    from app.db import get_open_cycle, put_cycle
+    from app.models.cycle import Cycle, CycleStatus
+
+    put_cycle(Cycle(cycle_id="cycle-1", start_date="2026-01-01", status=CycleStatus.CLOSED))
+
+    assert get_open_cycle() is None
+
+
+def test_put_and_get_dividend_roundtrip(dynamodb_dividends_table):
+    from app.db import list_dividends_for_cycle, put_dividend
+    from app.models.cycle import Dividend
+
+    dividend = Dividend(
+        cycle_id="cycle-1", member_id="mem-1", share_based_amount=250, top3_bonus_amount=50,
+        total_amount=300, shares_at_calculation=2, rank=1,
+    )
+    put_dividend(dividend)
+
+    fetched = list_dividends_for_cycle("cycle-1")
+    assert fetched == [dividend]
+
+
+def test_list_dividends_for_cycle_returns_only_that_cycles_dividends(dynamodb_dividends_table):
+    from app.db import list_dividends_for_cycle, put_dividend
+    from app.models.cycle import Dividend
+
+    put_dividend(Dividend(
+        cycle_id="cycle-1", member_id="mem-1", share_based_amount=250, top3_bonus_amount=0,
+        total_amount=250, shares_at_calculation=2,
+    ))
+    put_dividend(Dividend(
+        cycle_id="cycle-2", member_id="mem-1", share_based_amount=100, top3_bonus_amount=0,
+        total_amount=100, shares_at_calculation=2,
+    ))
+
+    dividends = list_dividends_for_cycle("cycle-1")
+    assert [d.cycle_id for d in dividends] == ["cycle-1"]
+
+
+def test_put_and_get_loan_persists_cycle_id(dynamodb_loans_table):
+    from app.db import get_loan_by_id, put_loan
+    from app.models.loan import Loan, LoanStatus
+
+    loan = Loan(
+        loan_id="loan-1", member_id="mem-1", requested_amount=10000, approved_amount=10000,
+        repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        status=LoanStatus.ACTIVE, release_date="2026-06-21", interest_deduction=500,
+        net_release_amount=9500, remaining_balance=10000, next_due_date="2026-07-21",
+        cycle_id="cycle-1",
+    )
+    put_loan(loan)
+
+    fetched = get_loan_by_id("loan-1")
+    assert fetched.cycle_id == "cycle-1"
+
+
+def test_put_and_get_loan_persists_null_cycle_id_by_default(dynamodb_loans_table):
+    from app.db import get_loan_by_id, put_loan
+    from app.models.loan import Loan
+
+    put_loan(
+        Loan(
+            loan_id="loan-1", member_id="mem-1", requested_amount=10000,
+            repayment_interval_days=30, interest_rate=0.05, application_date="2026-06-21",
+        )
+    )
+
+    assert get_loan_by_id("loan-1").cycle_id is None
+
+
+def test_put_and_get_transaction_persists_cycle_id(dynamodb_transactions_table):
+    from app.db import list_transactions_for_loan, put_transaction
+    from app.models.transaction import Transaction, TransactionType
+
+    put_transaction(
+        Transaction(
+            transaction_id="txn-1", loan_id="loan-1", timestamp="2026-07-21T10:00:00+00:00",
+            type=TransactionType.PAYMENT, amount=3000, remaining_balance_after=7000,
+            cycle_id="cycle-1",
+        )
+    )
+
+    fetched = list_transactions_for_loan("loan-1")
+    assert fetched[0].cycle_id == "cycle-1"

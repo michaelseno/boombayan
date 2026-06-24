@@ -34,6 +34,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Administrator')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Members' })).toHaveAttribute('href', '/members')
     expect(screen.getByRole('link', { name: 'Loans' })).toHaveAttribute('href', '/loans')
+    expect(screen.getByRole('link', { name: 'Cycles' })).toHaveAttribute('href', '/cycles')
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
   })
 

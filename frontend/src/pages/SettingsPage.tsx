@@ -11,6 +11,9 @@ export function SettingsPage() {
   const [defaultInterestRate, setDefaultInterestRate] = useState('')
   const [penaltyRate, setPenaltyRate] = useState('')
   const [penaltyGracePeriodHours, setPenaltyGracePeriodHours] = useState('')
+  const [top3BonusPercentage, setTop3BonusPercentage] = useState('')
+  const [top3RankingWeightAmount, setTop3RankingWeightAmount] = useState('')
+  const [top3RankingWeightCount, setTop3RankingWeightCount] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -27,6 +30,9 @@ export function SettingsPage() {
         setDefaultInterestRate(String(data.default_interest_rate))
         setPenaltyRate(String(data.penalty_rate))
         setPenaltyGracePeriodHours(String(data.penalty_grace_period_hours))
+        setTop3BonusPercentage(String(data.top3_bonus_percentage))
+        setTop3RankingWeightAmount(String(data.top3_ranking_weight_amount))
+        setTop3RankingWeightCount(String(data.top3_ranking_weight_count))
       })
       .catch(() => {
         if (!cancelled) setError('Could not load settings.')
@@ -50,6 +56,9 @@ export function SettingsPage() {
           default_interest_rate: Number(defaultInterestRate),
           penalty_rate: Number(penaltyRate),
           penalty_grace_period_hours: Number(penaltyGracePeriodHours),
+          top3_bonus_percentage: Number(top3BonusPercentage),
+          top3_ranking_weight_amount: Number(top3RankingWeightAmount),
+          top3_ranking_weight_count: Number(top3RankingWeightCount),
         },
       })
       setConfig(updated)
@@ -111,6 +120,33 @@ export function SettingsPage() {
           type="number"
           value={penaltyGracePeriodHours}
           onChange={(e) => setPenaltyGracePeriodHours(e.target.value)}
+          required
+        />
+        <label htmlFor="top3-bonus-percentage">Top 3 bonus percentage</label>
+        <input
+          id="top3-bonus-percentage"
+          type="number"
+          step="0.01"
+          value={top3BonusPercentage}
+          onChange={(e) => setTop3BonusPercentage(e.target.value)}
+          required
+        />
+        <label htmlFor="top3-ranking-weight-amount">Top 3 ranking weight (amount)</label>
+        <input
+          id="top3-ranking-weight-amount"
+          type="number"
+          step="0.01"
+          value={top3RankingWeightAmount}
+          onChange={(e) => setTop3RankingWeightAmount(e.target.value)}
+          required
+        />
+        <label htmlFor="top3-ranking-weight-count">Top 3 ranking weight (count)</label>
+        <input
+          id="top3-ranking-weight-count"
+          type="number"
+          step="0.01"
+          value={top3RankingWeightCount}
+          onChange={(e) => setTop3RankingWeightCount(e.target.value)}
           required
         />
         {saveError && <p role="alert">{saveError}</p>}
