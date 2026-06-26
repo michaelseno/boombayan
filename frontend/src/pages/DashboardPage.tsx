@@ -1,54 +1,40 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { apiFetch } from '../api/client'
-import { useAuth } from '../auth/AuthContext'
-
-interface CurrentUser {
-  user_id: string
-  email: string
-  is_administrator: boolean
-  member_id: string | null
-}
+import { useCurrentUser } from '../auth/CurrentUserContext'
 
 export function DashboardPage() {
-  const { idToken, logout } = useAuth()
-  const [user, setUser] = useState<CurrentUser | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { currentUser, loading, error } = useCurrentUser()
 
-  useEffect(() => {
-    if (!idToken) return
-    let cancelled = false
-    apiFetch<CurrentUser>('/me', idToken)
-      .then((data) => {
-        if (!cancelled) setUser(data)
-      })
-      .catch(() => {
-        if (!cancelled) setError('Could not load your profile.')
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [idToken])
+  if (loading) {
+    return (
+      <div className="motion-safe:animate-pulse space-y-3">
+        <div className="h-6 bg-white/10 rounded w-1/3" />
+        <div className="h-4 bg-white/10 rounded w-1/4" />
+        <span className="sr-only">Loading...</span>
+      </div>
+    )
+  }
 
   if (error) {
-    return <p role="alert">{error}</p>
+    return (
+      <p role="alert" className="bg-red-500/10 border border-red-500/20 text-red-300 rounded-lg px-4 py-3 text-sm">
+        {error}
+      </p>
+    )
   }
 
-  if (!user) {
-    return <p>Loading...</p>
-  }
+  if (!currentUser) return null
 
   return (
     <div>
-      <h1>Welcome, {user.email}</h1>
-      <p>{user.is_administrator ? 'Administrator' : 'Board Member'}</p>
-      <nav>
-        <Link to="/members">Members</Link>
-        <Link to="/loans">Loans</Link>
-        <Link to="/cycles">Cycles</Link>
-        {user.is_administrator && <Link to="/settings">Settings</Link>}
-      </nav>
-      <button onClick={logout}>Log out</button>
+      <h1 className="text-2xl font-bold text-slate-50 mb-2">Welcome, {currentUser.email}</h1>
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+          currentUser.is_administrator
+            ? 'bg-amber-500/20 text-amber-300'
+            : 'bg-blue-500/20 text-blue-300'
+        }`}
+      >
+        {currentUser.is_administrator ? 'Administrator' : 'Board Member'}
+      </span>
     </div>
   )
 }
