@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { apiFetch } from '../api/client'
 import type { Loan } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
+import { useCurrentUser } from '../auth/CurrentUserContext'
 import { LoanDetailPage } from './LoanDetailPage'
 
 vi.mock('../api/client', () => ({
@@ -11,6 +12,9 @@ vi.mock('../api/client', () => ({
 }))
 vi.mock('../auth/AuthContext', () => ({
   useAuth: vi.fn(),
+}))
+vi.mock('../auth/CurrentUserContext', () => ({
+  useCurrentUser: vi.fn(() => ({ currentUser: null, loading: false, error: null })),
 }))
 
 function renderAtLoan(loanId: string) {
@@ -60,8 +64,9 @@ const boardUser = { user_id: 'board-1', email: 'board@boombayan.org', is_adminis
 const adminUser = { user_id: 'admin-1', email: 'admin@boombayan.org', is_administrator: true, member_id: null }
 
 function mockLoanFetches(loan: Loan, user: typeof boardUser, transactions: unknown[] = []) {
+  vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+  vi.mocked(useCurrentUser).mockReturnValue({ currentUser: user, loading: false, error: null })
   vi.mocked(apiFetch).mockImplementation((path) => {
-    if (path === '/me') return Promise.resolve(user)
     if (path.endsWith('/transactions')) return Promise.resolve(transactions)
     return Promise.resolve(loan)
   })

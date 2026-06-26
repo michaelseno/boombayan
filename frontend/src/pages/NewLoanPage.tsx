@@ -49,40 +49,87 @@ export function NewLoanPage() {
   }
 
   if (!members) {
-    return <p>Loading...</p>
+    return (
+      <div className="motion-safe:animate-pulse space-y-3">
+        <div className="h-6 bg-white/10 rounded w-1/3" />
+        <div className="h-40 bg-white/10 rounded-xl" />
+      </div>
+    )
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>New loan application</h1>
-      <label htmlFor="member">Member</label>
-      <select id="member" value={memberId} onChange={(e) => setMemberId(e.target.value)} required>
-        {members.map((member) => (
-          <option key={member.member_id} value={member.member_id}>
-            {member.first_name} {member.last_name}
-          </option>
-        ))}
-      </select>
-      <label htmlFor="requested-amount">Requested amount</label>
-      <input
-        id="requested-amount"
-        type="number"
-        value={requestedAmount}
-        onChange={(e) => setRequestedAmount(e.target.value)}
-        required
-      />
-      <label htmlFor="repayment-interval-days">Repayment interval (days)</label>
-      <input
-        id="repayment-interval-days"
-        type="number"
-        value={repaymentIntervalDays}
-        onChange={(e) => setRepaymentIntervalDays(e.target.value)}
-        required
-      />
-      <label htmlFor="remarks">Remarks</label>
-      <input id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
-      {error && <p role="alert">{error}</p>}
-      <button type="submit">Submit application</button>
-    </form>
+    <div>
+      <h1 className="text-2xl font-bold text-slate-50 mb-6">New loan application</h1>
+      <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-xl p-6 max-w-md">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="member" className="block text-xs font-medium text-slate-400 mb-1">
+              Member
+            </label>
+            <select
+              id="member"
+              value={memberId}
+              onChange={(e) => setMemberId(e.target.value)}
+              required
+              className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors duration-150"
+            >
+              {members.map((member) => (
+                <option key={member.member_id} value={member.member_id}>
+                  {member.first_name} {member.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="requested-amount" className="block text-xs font-medium text-slate-400 mb-1">
+              Requested amount
+            </label>
+            <input
+              id="requested-amount"
+              type="number"
+              value={requestedAmount}
+              onChange={(e) => setRequestedAmount(e.target.value)}
+              required
+              className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors duration-150"
+            />
+          </div>
+          <div>
+            <label htmlFor="repayment-interval-days" className="block text-xs font-medium text-slate-400 mb-1">
+              Repayment interval (days)
+            </label>
+            <input
+              id="repayment-interval-days"
+              type="number"
+              value={repaymentIntervalDays}
+              onChange={(e) => setRepaymentIntervalDays(e.target.value)}
+              required
+              className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors duration-150"
+            />
+          </div>
+          <div>
+            <label htmlFor="remarks" className="block text-xs font-medium text-slate-400 mb-1">
+              Remarks
+            </label>
+            <input
+              id="remarks"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors duration-150"
+            />
+          </div>
+          {error && (
+            <p role="alert" className="bg-red-500/10 border border-red-500/20 text-red-300 rounded-lg px-4 py-3 text-sm">
+              {error}
+            </p>
+          )}
+          <button
+            type="submit"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold px-4 py-2 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+          >
+            Submit application
+          </button>
+        </form>
+      </div>
+    </div>
   )
 }
