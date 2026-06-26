@@ -74,7 +74,6 @@ function mockLoanFetches(loan: Loan, user: typeof boardUser, transactions: unkno
 
 describe('LoanDetailPage', () => {
   it('shows loan details and approvals after loading', async () => {
-    vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
     mockLoanFetches(pendingLoan, boardUser)
 
     renderAtLoan('loan-1')

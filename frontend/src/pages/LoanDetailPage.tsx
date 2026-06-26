@@ -327,7 +327,13 @@ export function LoanDetailPage() {
             <tbody>
               {transactions.map((transaction) => (
                 <tr key={transaction.transaction_id} className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors duration-150">
-                  <td className="px-4 py-3 text-slate-300">{transaction.type}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      transaction.type === 'PAYMENT' ? 'bg-blue-500/20 text-blue-300' : 'bg-red-500/20 text-red-300'
+                    }`}>
+                      {transaction.type}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-slate-300">{transaction.amount}</td>
                   <td className="px-4 py-3 text-slate-300">{transaction.remaining_balance_after}</td>
                   <td className="px-4 py-3 text-slate-300">{transaction.timestamp}</td>
