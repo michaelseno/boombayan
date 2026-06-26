@@ -51,47 +51,96 @@ export function LoginPage() {
 
   if (completeNewPassword) {
     return (
-      <form onSubmit={handleNewPasswordSubmit}>
-        <h1>Set a new password</h1>
-        <p>Your account requires a new password before you can continue.</p>
-        <label htmlFor="new-password">New password</label>
-        <input
-          id="new-password"
-          type="password"
-          autoComplete="new-password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          required
-        />
-        {newPasswordError && <p role="alert">{newPasswordError}</p>}
-        <button type="submit">Set password</button>
-      </form>
+      <div className="bg-[#0F172A] min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-8 w-full max-w-sm backdrop-blur-sm">
+          <h1 className="text-amber-400 font-bold text-2xl text-center mb-1">Boombayan LMS</h1>
+          <p className="text-slate-500 text-sm text-center mb-8">Back-office management</p>
+
+          <form onSubmit={handleNewPasswordSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="new-password" className="block text-xs font-medium text-slate-400 mb-1">
+                New password
+              </label>
+              <input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors duration-150"
+              />
+            </div>
+
+            {newPasswordError && (
+              <p role="alert" className="bg-red-500/10 border border-red-500/20 text-red-300 rounded-lg px-4 py-3 text-sm">
+                {newPasswordError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold px-4 py-2 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+            >
+              Set password
+            </button>
+          </form>
+        </div>
+      </div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Boombayan LMS</h1>
-      <label htmlFor="email">Email</label>
-      <input
-        id="email"
-        type="email"
-        autoComplete="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <label htmlFor="password">Password</label>
-      <input
-        id="password"
-        type="password"
-        autoComplete="current-password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      {error && <p role="alert">{error}</p>}
-      <button type="submit">Log in</button>
-    </form>
+    <div className="bg-[#0F172A] min-h-screen flex items-center justify-center p-4">
+      <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-8 w-full max-w-sm backdrop-blur-sm">
+        <h1 className="text-amber-400 font-bold text-2xl text-center mb-1">Boombayan LMS</h1>
+        <p className="text-slate-500 text-sm text-center mb-8">Back-office management</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-xs font-medium text-slate-400 mb-1">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors duration-150"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-xs font-medium text-slate-400 mb-1">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors duration-150"
+            />
+          </div>
+
+          {error && (
+            <p role="alert" className="bg-red-500/10 border border-red-500/20 text-red-300 rounded-lg px-4 py-3 text-sm">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold px-4 py-2 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+          >
+            Log in
+          </button>
+        </form>
+      </div>
+    </div>
   )
 }
