@@ -19,6 +19,8 @@ dist/
 # Env
 .env
 .env.local
+scripts/.env.deploy
+frontend/.env.production
 
 # OS
 .DS_Store
