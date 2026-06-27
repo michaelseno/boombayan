@@ -10,7 +10,7 @@ import { ReportsPage } from './ReportsPage'
 vi.mock('../api/client', () => ({ apiFetch: vi.fn() }))
 vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }))
 vi.mock('../auth/CurrentUserContext', async (importOriginal) => {
-  const actual = await importOriginal()
+  const actual = await importOriginal<typeof import('../auth/CurrentUserContext')>()
   return {
     ...actual,
     useCurrentUser: vi.fn(),
@@ -114,7 +114,7 @@ describe('ReportsPage', () => {
     expect(screen.getAllByText('Ana Reyes')).toHaveLength(1)
   })
 
-  it('Cycles tab shows cycle selector after loading', async () => {
+  it('Cycles tab shows cycle summary cards and dividend table after loading', async () => {
     setup()
     vi.mocked(apiFetch).mockImplementation((path: string) => {
       if (path === '/members') return Promise.resolve([])
@@ -122,26 +122,40 @@ describe('ReportsPage', () => {
       if (path === '/cycles') return Promise.resolve([
         { cycle_id: 'c1', start_date: '2026-01-01', end_date: '2026-06-01', status: 'Closed', total_interest_earned: 500, total_penalties_collected: 100, top3_bonus_percentage: 0.1, top3_bonus_pool: 60, remaining_profit: 540, total_shares_at_close: 100, closed_at: '2026-06-01' },
       ])
-      if (path === '/cycles/c1/dividends') return Promise.resolve([])
+      if (path === '/cycles/c1/dividends') return Promise.resolve([
+        { cycle_id: 'c1', member_id: 'm1', share_based_amount: 270, top3_bonus_amount: 0, total_amount: 270, shares_at_calculation: 10, rank: null },
+      ])
       return Promise.resolve([])
     })
     renderWithUser(<MemoryRouter><ReportsPage /></MemoryRouter>)
     fireEvent.click(screen.getByRole('tab', { name: 'Cycles' }))
-    expect(await screen.findByRole('combobox', { name: /cycle/i })).toBeInTheDocument()
+    expect(await screen.findByText('Interest Earned')).toBeInTheDocument()
+    expect(screen.getByText('500.00')).toBeInTheDocument()
+    expect(screen.getAllByText('270.00').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('Members tab shows member selector after loading', async () => {
+  it('Members tab shows loan history and dividend history after selecting a member', async () => {
     setup()
     vi.mocked(apiFetch).mockImplementation((path: string) => {
       if (path === '/members') return Promise.resolve([
         { member_id: 'm1', first_name: 'Ana', last_name: 'Reyes', email: 'ana@example.com', phone: '', date_joined: '2026-01-01', status: 'Active', current_shares: 10, current_capital_amount: 5000, share_history: [] },
       ])
-      if (path === '/loans') return Promise.resolve([])
-      if (path === '/cycles') return Promise.resolve([])
+      if (path === '/loans') return Promise.resolve([
+        { loan_id: 'l1', member_id: 'm1', requested_amount: 2000, approved_amount: 2000, repayment_interval_days: 30, interest_rate: 0.05, application_date: '2026-03-01', remarks: null, status: 'Active', is_exception_case: false, release_date: '2026-03-15', interest_deduction: 100, net_release_amount: 1900, remaining_balance: 1500, next_due_date: '2026-12-01', penalty_charged_for_current_cycle: false, cycle_id: null, approvals: {} },
+      ])
+      if (path === '/cycles') return Promise.resolve([
+        { cycle_id: 'c1', start_date: '2026-01-01', end_date: '2026-06-01', status: 'Closed', total_interest_earned: 500, total_penalties_collected: 100, top3_bonus_percentage: 0.1, top3_bonus_pool: 60, remaining_profit: 540, total_shares_at_close: 100, closed_at: '2026-06-01' },
+      ])
+      if (path === '/cycles/c1/dividends') return Promise.resolve([
+        { cycle_id: 'c1', member_id: 'm1', share_based_amount: 270, top3_bonus_amount: 0, total_amount: 270, shares_at_calculation: 10, rank: null },
+      ])
       return Promise.resolve([])
     })
     renderWithUser(<MemoryRouter><ReportsPage /></MemoryRouter>)
     fireEvent.click(screen.getByRole('tab', { name: 'Members' }))
-    expect(await screen.findByRole('combobox', { name: /member/i })).toBeInTheDocument()
+    const select = await screen.findByRole('combobox', { name: /member/i })
+    fireEvent.change(select, { target: { value: 'm1' } })
+    expect(await screen.findByText('2,000.00')).toBeInTheDocument()
+    expect(screen.getAllByText('270.00').length).toBeGreaterThanOrEqual(1)
   })
 })

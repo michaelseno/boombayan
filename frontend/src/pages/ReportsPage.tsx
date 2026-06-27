@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Cycle, Dividend, Loan, LoanStatus, Member } from '../api/types'
@@ -78,6 +78,9 @@ export function ReportsPage() {
   // Loan ledger state
   const [loanStatusFilter, setLoanStatusFilter] = useState<LoanStatus | 'All'>('All')
 
+  // Ref tracking which cycle IDs have already had dividend fetches dispatched
+  const fetchedCyclesRef = useRef<Set<string>>(new Set())
+
   // Fetch members + loans on mount
   useEffect(() => {
     if (!idToken) return
@@ -130,14 +133,21 @@ export function ReportsPage() {
   // Fetch dividends for all closed cycles when Members tab visited (for member statement)
   useEffect(() => {
     if (!idToken || activeTab !== 'members' || !cycles) return
+    let cancelled = false
     const closed = cycles.filter((c) => c.status === 'Closed')
     closed.forEach((c) => {
-      if (dividendCache[c.cycle_id]) return
+      if (fetchedCyclesRef.current.has(c.cycle_id)) return
+      fetchedCyclesRef.current.add(c.cycle_id)
       apiFetch<Dividend[]>(`/cycles/${c.cycle_id}/dividends`, idToken)
-        .then((data) => setDividendCache((prev) => ({ ...prev, [c.cycle_id]: data })))
-        .catch(() => {})
+        .then((data) => {
+          if (!cancelled) setDividendCache((prev) => ({ ...prev, [c.cycle_id]: data }))
+        })
+        .catch(() => {
+          if (!cancelled) setCycleError('Could not load member dividends.')
+        })
     })
-  }, [idToken, activeTab, cycles, dividendCache])
+    return () => { cancelled = true }
+  }, [idToken, activeTab, cycles])
 
   // ── Portfolio Snapshot ────────────────────────────────────────────────────
   function renderPortfolio() {
