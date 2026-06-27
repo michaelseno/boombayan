@@ -1,6 +1,6 @@
 service: boombayan-api
 
-frameworkVersion: '3'
+frameworkVersion: '4'
 
 provider:
   name: aws
@@ -17,7 +17,7 @@ provider:
     DIVIDENDS_TABLE: ${self:service}-${sls:stage}-dividends
     COGNITO_USER_POOL_ID: !Ref CognitoUserPool
     COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
-    CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:5174
+    CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:5174,https://d1iwtuq558xock.cloudfront.net
   iam:
     role:
       statements:
