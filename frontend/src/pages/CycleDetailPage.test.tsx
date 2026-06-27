@@ -3,14 +3,12 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { apiFetch } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { useCurrentUser } from '../auth/CurrentUserContext'
 import { CycleDetailPage } from './CycleDetailPage'
 
-vi.mock('../api/client', () => ({
-  apiFetch: vi.fn(),
-}))
-vi.mock('../auth/AuthContext', () => ({
-  useAuth: vi.fn(),
-}))
+vi.mock('../api/client', () => ({ apiFetch: vi.fn() }))
+vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }))
+vi.mock('../auth/CurrentUserContext', () => ({ useCurrentUser: vi.fn() }))
 
 const openCycle = {
   cycle_id: 'cycle-1',
@@ -29,9 +27,16 @@ const openCycle = {
 const admin = { user_id: 'admin-1', email: 'admin@boombayan.org', is_administrator: true, member_id: null }
 
 const member = {
-  member_id: 'mem-1', first_name: 'Ana', last_name: 'Reyes', email: 'ana@example.com',
-  phone: '1', date_joined: '2026-01-15', status: 'Active', current_shares: 2,
-  current_capital_amount: 1000, share_history: [],
+  member_id: 'mem-1',
+  first_name: 'Ana',
+  last_name: 'Reyes',
+  email: 'ana@example.com',
+  phone: '1',
+  date_joined: '2026-01-15',
+  status: 'Active',
+  current_shares: 2,
+  current_capital_amount: 1000,
+  share_history: [],
 }
 
 function renderPage() {
@@ -47,7 +52,6 @@ function renderPage() {
 function mockFetchFor(cycle: typeof openCycle, dividends: unknown[] = []) {
   vi.mocked(apiFetch).mockImplementation((path) => {
     if (path === '/cycles/cycle-1') return Promise.resolve(cycle)
-    if (path === '/me') return Promise.resolve(admin)
     if (path === '/cycles/cycle-1/dividends') return Promise.resolve(dividends)
     if (path === '/members') return Promise.resolve([member])
     throw new Error(`Unexpected path: ${path}`)
@@ -57,6 +61,7 @@ function mockFetchFor(cycle: typeof openCycle, dividends: unknown[] = []) {
 describe('CycleDetailPage', () => {
   it('shows cycle details after loading', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(useCurrentUser).mockReturnValue({ currentUser: admin, loading: false, error: null })
     mockFetchFor(openCycle)
 
     renderPage()
@@ -67,6 +72,7 @@ describe('CycleDetailPage', () => {
 
   it('previews the close before confirming', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(useCurrentUser).mockReturnValue({ currentUser: admin, loading: false, error: null })
     mockFetchFor(openCycle)
 
     renderPage()
@@ -82,8 +88,12 @@ describe('CycleDetailPage', () => {
       total_shares_at_close: 2,
       dividends: [
         {
-          member_id: 'mem-1', shares_at_calculation: 2, share_based_amount: 1000,
-          top3_bonus_amount: 0, total_amount: 1000, rank: null,
+          member_id: 'mem-1',
+          shares_at_calculation: 2,
+          share_based_amount: 1000,
+          top3_bonus_amount: 0,
+          total_amount: 1000,
+          rank: null,
         },
       ],
     }
@@ -96,16 +106,29 @@ describe('CycleDetailPage', () => {
 
   it('confirms the close and refreshes the dividend list', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(useCurrentUser).mockReturnValue({ currentUser: admin, loading: false, error: null })
     mockFetchFor(openCycle)
 
     renderPage()
     await waitFor(() => expect(screen.getByText('Status: Open')).toBeInTheDocument())
 
     const previewResult = {
-      cycle_id: 'cycle-1', total_interest_earned: 1000, total_penalties_collected: 0,
-      top3_bonus_percentage: 0, top3_bonus_pool: 0, remaining_profit: 1000, total_shares_at_close: 2,
+      cycle_id: 'cycle-1',
+      total_interest_earned: 1000,
+      total_penalties_collected: 0,
+      top3_bonus_percentage: 0,
+      top3_bonus_pool: 0,
+      remaining_profit: 1000,
+      total_shares_at_close: 2,
       dividends: [
-        { member_id: 'mem-1', shares_at_calculation: 2, share_based_amount: 1000, top3_bonus_amount: 0, total_amount: 1000, rank: null },
+        {
+          member_id: 'mem-1',
+          shares_at_calculation: 2,
+          share_based_amount: 1000,
+          top3_bonus_amount: 0,
+          total_amount: 1000,
+          rank: null,
+        },
       ],
     }
     vi.mocked(apiFetch).mockResolvedValueOnce(previewResult)
@@ -115,8 +138,13 @@ describe('CycleDetailPage', () => {
     const closedCycle = { ...openCycle, status: 'Closed', end_date: '2026-06-23', remaining_profit: 1000 }
     vi.mocked(apiFetch).mockResolvedValueOnce(closedCycle)
     const dividendRecord = {
-      cycle_id: 'cycle-1', member_id: 'mem-1', share_based_amount: 1000,
-      top3_bonus_amount: 0, total_amount: 1000, shares_at_calculation: 2, rank: null,
+      cycle_id: 'cycle-1',
+      member_id: 'mem-1',
+      share_based_amount: 1000,
+      top3_bonus_amount: 0,
+      total_amount: 1000,
+      shares_at_calculation: 2,
+      rank: null,
     }
     vi.mocked(apiFetch).mockResolvedValueOnce([dividendRecord])
     fireEvent.click(screen.getByRole('button', { name: 'Confirm close' }))
@@ -130,6 +158,7 @@ describe('CycleDetailPage', () => {
 
   it('shows an error message when the cycle fetch fails', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(useCurrentUser).mockReturnValue({ currentUser: null, loading: false, error: null })
     vi.mocked(apiFetch).mockRejectedValue(new Error('boom'))
 
     renderPage()
@@ -140,9 +169,9 @@ describe('CycleDetailPage', () => {
   it('does not show close UI for non-administrator viewing an open cycle', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
     const nonAdmin = { ...admin, is_administrator: false }
+    vi.mocked(useCurrentUser).mockReturnValue({ currentUser: nonAdmin, loading: false, error: null })
     vi.mocked(apiFetch).mockImplementation((path) => {
       if (path === '/cycles/cycle-1') return Promise.resolve(openCycle)
-      if (path === '/me') return Promise.resolve(nonAdmin)
       if (path === '/cycles/cycle-1/dividends') return Promise.resolve([])
       if (path === '/members') return Promise.resolve([member])
       throw new Error(`Unexpected path: ${path}`)
@@ -156,6 +185,7 @@ describe('CycleDetailPage', () => {
 
   it('does not show close UI for administrator viewing a closed cycle', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(useCurrentUser).mockReturnValue({ currentUser: admin, loading: false, error: null })
     const closedCycle = {
       ...openCycle,
       status: 'Closed',
@@ -163,7 +193,6 @@ describe('CycleDetailPage', () => {
     }
     vi.mocked(apiFetch).mockImplementation((path) => {
       if (path === '/cycles/cycle-1') return Promise.resolve(closedCycle)
-      if (path === '/me') return Promise.resolve(admin)
       if (path === '/cycles/cycle-1/dividends') return Promise.resolve([])
       if (path === '/members') return Promise.resolve([member])
       throw new Error(`Unexpected path: ${path}`)

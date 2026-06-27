@@ -3,14 +3,12 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { apiFetch } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { useCurrentUser } from '../auth/CurrentUserContext'
 import { CyclesPage } from './CyclesPage'
 
-vi.mock('../api/client', () => ({
-  apiFetch: vi.fn(),
-}))
-vi.mock('../auth/AuthContext', () => ({
-  useAuth: vi.fn(),
-}))
+vi.mock('../api/client', () => ({ apiFetch: vi.fn() }))
+vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }))
+vi.mock('../auth/CurrentUserContext', () => ({ useCurrentUser: vi.fn() }))
 
 const openCycle = {
   cycle_id: 'cycle-1',
@@ -26,15 +24,15 @@ const openCycle = {
   closed_at: null,
 }
 
-const admin = { user_id: 'admin-1', email: 'admin@boombayan.org', is_administrator: true, member_id: null }
-const boardMember = { user_id: 'member-1', email: 'member@boombayan.org', is_administrator: false, member_id: 'member-1' }
-
 describe('CyclesPage', () => {
   it('shows the list of cycles after loading', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
-    vi.mocked(apiFetch).mockImplementation((path) =>
-      path === '/cycles' ? Promise.resolve([openCycle]) : Promise.resolve(admin),
-    )
+    vi.mocked(useCurrentUser).mockReturnValue({
+      currentUser: { user_id: 'admin-1', email: 'admin@boombayan.org', is_administrator: true, member_id: null },
+      loading: false,
+      error: null,
+    })
+    vi.mocked(apiFetch).mockResolvedValue([openCycle])
 
     render(
       <MemoryRouter>
@@ -48,9 +46,12 @@ describe('CyclesPage', () => {
 
   it('hides the open-cycle form when a cycle is already open', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
-    vi.mocked(apiFetch).mockImplementation((path) =>
-      path === '/cycles' ? Promise.resolve([openCycle]) : Promise.resolve(admin),
-    )
+    vi.mocked(useCurrentUser).mockReturnValue({
+      currentUser: { user_id: 'admin-1', email: 'admin@boombayan.org', is_administrator: true, member_id: null },
+      loading: false,
+      error: null,
+    })
+    vi.mocked(apiFetch).mockResolvedValue([openCycle])
 
     render(
       <MemoryRouter>
@@ -64,9 +65,12 @@ describe('CyclesPage', () => {
 
   it('opens a new cycle when none is open', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
-    vi.mocked(apiFetch).mockImplementation((path) =>
-      path === '/cycles' ? Promise.resolve([]) : Promise.resolve(admin),
-    )
+    vi.mocked(useCurrentUser).mockReturnValue({
+      currentUser: { user_id: 'admin-1', email: 'admin@boombayan.org', is_administrator: true, member_id: null },
+      loading: false,
+      error: null,
+    })
+    vi.mocked(apiFetch).mockResolvedValue([])
 
     render(
       <MemoryRouter>
@@ -90,9 +94,17 @@ describe('CyclesPage', () => {
 
   it('hides the open-cycle form when the user is not an administrator', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
-    vi.mocked(apiFetch).mockImplementation((path) =>
-      path === '/cycles' ? Promise.resolve([]) : Promise.resolve(boardMember),
-    )
+    vi.mocked(useCurrentUser).mockReturnValue({
+      currentUser: {
+        user_id: 'member-1',
+        email: 'member@boombayan.org',
+        is_administrator: false,
+        member_id: 'member-1',
+      },
+      loading: false,
+      error: null,
+    })
+    vi.mocked(apiFetch).mockResolvedValue([])
 
     render(
       <MemoryRouter>
@@ -106,6 +118,7 @@ describe('CyclesPage', () => {
 
   it('shows an error message when the cycles fetch fails', async () => {
     vi.mocked(useAuth).mockReturnValue({ idToken: 'fake-id-token', login: vi.fn(), setTokens: vi.fn(), logout: vi.fn() })
+    vi.mocked(useCurrentUser).mockReturnValue({ currentUser: null, loading: false, error: null })
     vi.mocked(apiFetch).mockRejectedValue(new Error('boom'))
 
     render(

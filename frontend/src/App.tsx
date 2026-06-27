@@ -1,5 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
+import { CurrentUserProvider } from './auth/CurrentUserContext'
+import { AppShell } from './components/AppShell'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AddMemberPage } from './pages/AddMemberPage'
 import { CycleDetailPage } from './pages/CycleDetailPage'
@@ -20,16 +22,18 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/members" element={<MembersPage />} />
-            <Route path="/members/new" element={<AddMemberPage />} />
-            <Route path="/members/:memberId" element={<MemberDetailPage />} />
-            <Route path="/loans" element={<LoansPage />} />
-            <Route path="/loans/new" element={<NewLoanPage />} />
-            <Route path="/loans/:loanId" element={<LoanDetailPage />} />
-            <Route path="/cycles" element={<CyclesPage />} />
-            <Route path="/cycles/:cycleId" element={<CycleDetailPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route element={<CurrentUserProvider><AppShell /></CurrentUserProvider>}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/members" element={<MembersPage />} />
+              <Route path="/members/new" element={<AddMemberPage />} />
+              <Route path="/members/:memberId" element={<MemberDetailPage />} />
+              <Route path="/loans" element={<LoansPage />} />
+              <Route path="/loans/new" element={<NewLoanPage />} />
+              <Route path="/loans/:loanId" element={<LoanDetailPage />} />
+              <Route path="/cycles" element={<CyclesPage />} />
+              <Route path="/cycles/:cycleId" element={<CycleDetailPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
