@@ -56,7 +56,8 @@ custom:
     # via Docker — building on macOS produces darwin .so files Lambda can't load.
     dockerizePip: true
 
-plugins: []
+plugins:
+  - serverless-python-requirements
 
 functions:
   api:
