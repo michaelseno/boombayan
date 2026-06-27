@@ -43,6 +43,7 @@ const pendingLoan: Loan = {
   net_release_amount: null,
   remaining_balance: null,
   next_due_date: null,
+  cycle_id: null,
   penalty_charged_for_current_cycle: false,
   approvals: {
     'board-1': { email: 'board@boombayan.org', status: 'Pending', date: null, comments: null },
