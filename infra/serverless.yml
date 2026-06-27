@@ -1,6 +1,6 @@
 service: boombayan-api
 
-frameworkVersion: '3'
+frameworkVersion: '4'
 
 provider:
   name: aws
@@ -56,8 +56,7 @@ custom:
     # via Docker — building on macOS produces darwin .so files Lambda can't load.
     dockerizePip: true
 
-plugins:
-  - serverless-python-requirements
+plugins: []
 
 functions:
   api:
