@@ -13,6 +13,7 @@ import { LoginPage } from './pages/LoginPage'
 import { MemberDetailPage } from './pages/MemberDetailPage'
 import { MembersPage } from './pages/MembersPage'
 import { NewLoanPage } from './pages/NewLoanPage'
+import { ReportsPage } from './pages/ReportsPage'
 import { SettingsPage } from './pages/SettingsPage'
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
               <Route path="/cycles" element={<CyclesPage />} />
               <Route path="/cycles/:cycleId" element={<CycleDetailPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
             </Route>
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

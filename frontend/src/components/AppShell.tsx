@@ -45,14 +45,10 @@ export function AppShell() {
             Cycles
           </NavLink>
 
-          {/* Reports — stubbed, activated in Plan 6b */}
-          <div
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 cursor-not-allowed"
-            title="Coming soon"
-          >
+          <NavLink to="/reports" className={navLinkClass}>
             <BarChart2 className="w-4 h-4 shrink-0" />
             Reports
-          </div>
+          </NavLink>
 
           {currentUser?.is_administrator && (
             <NavLink to="/settings" className={navLinkClass}>
